@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded" # Hna golna lih ibda m7lol
 )
 
-# --- 2. CSS FOR PRO LOOK (Fixed & Clean) ---
+# --- 2. CSS FOR PRO LOOK (Fixed Icons Issue) ---
 st.markdown("""
 <style>
     /* 1. Global Background */
@@ -24,20 +24,25 @@ st.markdown("""
         background-color: #1a1b26;
     }
     
-    /* 2. Hide Top Decoration (Dak l-khat lmlwwen lfoq) */
+    /* 2. Fix Header - N7yydo decoration w nkhlliw background transparent */
     [data-testid="stDecoration"] {
         display: none;
     }
-    
-    /* 3. Fix Header & Hide "Keybo..." glitch */
     header[data-testid="stHeader"] {
         background-color: #1a1b26 !important;
-        z-index: 99999 !important; /* Ntl3oh foq ay ktaba khra */
     }
     
-    /* 4. Fix Padding */
+    /* 3. HIDE TOOLBAR (Hada bach n7yydo 3 nuqat w Deploy li lfoq) */
+    [data-testid="stToolbar"] {
+        visibility: hidden;
+    }
+    .stDeployButton {
+        display: none;
+    }
+    
+    /* 4. Fix Padding - N9sso lfra3at */
     .block-container {
-        padding-top: 3rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 0rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
@@ -50,19 +55,18 @@ st.markdown("""
         border-right: 1px solid #2a2c3d;
     }
     
-    /* Sidebar Text */
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p {
+    /* 6. Sidebar Text - HNA KAN LMOCHKIL: 7yyedna 'span' */
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] label, [data-testid="stSidebar"] p {
         color: #a9b1d6 !important;
         font-family: 'Inter', sans-serif;
     }
     
-    /* 6. Fix Toggle Button (Ssem li kan fih mochkil) */
-    button[kind="header"] {
-        background-color: transparent !important;
-        color: #a9b1d6 !important;
+    /* 7. Fix Icons (Bach mayktbch lik keyboard...) */
+    button span {
+        font-family: 'Material Icons' !important; /* Kanferdo 3lih ybqa icone */
     }
     
-    /* 7. Radio Button Style */
+    /* 8. Radio Button Style */
     div[role="radiogroup"] > label > div:first-of-type {
         background-color: #2a2c3d !important;
     }
@@ -70,12 +74,12 @@ st.markdown("""
          color: #c0caf5 !important;
     }
 
-    /* 8. Hide Footer */
+    /* 9. Hide Footer */
     footer {
         visibility: hidden;
     }
     
-    /* 9. Iframe Shadow */
+    /* 10. Iframe Style */
     iframe {
         border-radius: 8px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
@@ -256,4 +260,5 @@ elif app_mode == "📧 IMAP Email Tool":
                         st.success("Done!")
                         st.download_button("💾 SAVE ZIP", zip_buf.getvalue(), "emails.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
 
