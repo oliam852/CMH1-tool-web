@@ -8,23 +8,112 @@ import zipfile
 import io
 from email.header import decode_header
 
-# --- 1. CONFIGURATION PAGE ---
-st.set_page_config(page_title="CMH1 Toolkit", page_icon="🛠️", layout="wide")
+# --- 1. CONFIGURATION PRO (Wide & Collapsed Sidebar option) ---
+st.set_page_config(
+    page_title="CMH1 Studio", 
+    page_icon="⚡", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-# --- 2. SIDEBAR MENU (L'MOHIM) ---
-st.sidebar.title("🚀 CMH1 TOOLKIT")
-st.sidebar.markdown("---")
-# Hna fin katkhter Application
-app_mode = st.sidebar.radio("🔎 Khtar l'Application:", ["📧 IMAP Email Tool", "💻 HTML Fusion Editor"])
-st.sidebar.markdown("---")
-st.sidebar.markdown("Developed by **@ayoubrhattoy**")
-
-# ==========================================
-# APP 1: IMAP EMAIL TOOL
-# ==========================================
-if app_mode == "📧 IMAP Email Tool":
+# --- 2. CSS FOR PRO LOOK (Hada howa sirr d Design) ---
+st.markdown("""
+<style>
+    /* Nqado l'background d page kamla */
+    .stApp {
+        background-color: #1a1b26; /* Nafs loun d Editor */
+    }
     
-    # --- HELPER FUNCTIONS ---
+    /* N7yydo l'padding lkbir d streamlit */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Sidebar Design - Dark & Clean */
+    [data-testid="stSidebar"] {
+        background-color: #16161e; /* Darker than main */
+        border-right: 1px solid #2a2c3d;
+    }
+    
+    /* Sidebar Text Colors */
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
+        color: #a9b1d6 !important;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Radio Button Style */
+    div[role="radiogroup"] > label > div:first-of-type {
+        background-color: #2a2c3d !important;
+    }
+    div[role="radiogroup"] label {
+         color: #c0caf5 !important;
+    }
+
+    /* Hide standard Streamlit header/footer/menu to look like a real app */
+    header[data-testid="stHeader"] {
+        visibility: hidden;
+        height: 0px;
+    }
+    footer {
+        visibility: hidden;
+    }
+    
+    /* iframe styling */
+    iframe {
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 3. SIDEBAR NAVIGATION ---
+st.sidebar.title("⚡ CMH1 STUDIO")
+st.sidebar.caption("Professional Toolkit v2.0")
+st.sidebar.markdown("---")
+
+# Khtiyarat b icones
+app_mode = st.sidebar.radio(
+    "NAVIGATION",
+    ["💻 HTML Fusion Editor", "📧 IMAP Email Tool"],
+    index=0 
+)
+
+st.sidebar.markdown("---")
+# Status indicator style
+st.sidebar.markdown("""
+<div style='background-color: #1e1f2b; padding: 10px; border-radius: 5px; border: 1px solid #2a2c3d;'>
+    <small style='color: #00f5c3;'>● System Online</small><br>
+    <small style='color: #565f89;'>Dev: @ayoubrhattoy</small>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# APP 1: HTML FUSION EDITOR (Pro Mode)
+# ==========================================
+if app_mode == "💻 HTML Fusion Editor":
+    # Ma ndiroch title 3adi, ndiroh b HTML bach yban integrated
+    # Walakin bima anna l'Editor fih header aslan, nqdro n-integréwah direct blama ndiro title hna
+    
+    if os.path.exists("V6.html"):
+        with open("V6.html", "r", encoding="utf-8") as f:
+            html_code = f.read()
+        
+        # HNA FIN KAYN L'BLAN: Height kbira bach t3mmr chacha
+        # Scrolling=True darouri, walakin m3a CSS lfoq maghaybanch lferq
+        components.html(html_code, height=950, scrolling=True)
+    else:
+        st.error("⚠️ Fichier 'V6.html' ma kaynch!")
+
+# ==========================================
+# APP 2: IMAP EMAIL TOOL (Pro Mode)
+# ==========================================
+elif app_mode == "📧 IMAP Email Tool":
+    
+    # ... (Functions dyal IMAP bqaw homa homa) ...
     def decode_header_text(header_value):
         if not header_value: return "no_subject"
         try:
@@ -55,131 +144,136 @@ if app_mode == "📧 IMAP Email Tool":
             st.error(f"❌ Login Error: {e}")
             return None
 
-    # --- UI IMAP ---
-    st.title("📧 GMAIL/IMAP RAW TOOL")
+    # UI Modern
+    st.markdown("<h1 style='color: #e0e0e0;'>📧 IMAP EXTRACTOR</h1>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        st.subheader("🔐 Login")
-        email_user = st.text_input("Email", placeholder="example@gmail.com")
-        app_pass = st.text_input("App Password", type="password")
+    # Styled Container
+    with st.container():
+        col1, col2 = st.columns([1, 2])
         
-        if st.button("🔌 Connect"):
-            if not email_user or not app_pass:
-                st.warning("3mmr l'email w password b3da!")
-            else:
+        with col1:
+            st.markdown("""
+            <div style='background-color: #2a2c3d; padding: 15px; border-radius: 8px;'>
+                <h3 style='color:white; margin-top:0;'>🔐 Credentials</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            st.write("") # Spacer
+            email_user = st.text_input("Email Address", placeholder="user@gmail.com")
+            app_pass = st.text_input("App Password", type="password")
+            
+            st.write("")
+            if st.button("🔌 CONNECT SERVER", use_container_width=True):
+                if not email_user or not app_pass:
+                    st.warning("Please enter credentials.")
+                else:
+                    mail = connect_imap(email_user, app_pass)
+                    if mail:
+                        st.session_state['mail_connected'] = True
+                        st.success("CONNECTED")
+                        mail.logout()
+                    else:
+                        st.session_state['mail_connected'] = False
+
+        with col2:
+            if st.session_state.get('mail_connected'):
+                st.markdown("""
+                <div style='background-color: #1e1f2b; padding: 15px; border-radius: 8px; border: 1px solid #00f5c3;'>
+                    <h3 style='color:#00f5c3; margin-top:0;'>🚀 Control Panel</h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
                 mail = connect_imap(email_user, app_pass)
                 if mail:
-                    st.session_state['mail_connected'] = True
-                    st.success("✅ Connected!")
-                    mail.logout()
-                else:
-                    st.session_state['mail_connected'] = False
+                    status, folders = mail.list()
+                    clean_folders = []
+                    for folder in folders:
+                        folder_str = folder.decode()
+                        match = re.search(r'"([^"]+)"$', folder_str) or re.search(r' ([^ ]+)$', folder_str)
+                        if match: clean_folders.append(match.group(1))
+                        else: clean_folders.append(folder_str)
 
-    with col2:
-        if st.session_state.get('mail_connected'):
-            mail = connect_imap(email_user, app_pass)
-            if mail:
-                status, folders = mail.list()
-                clean_folders = []
-                for folder in folders:
-                    folder_str = folder.decode()
-                    match = re.search(r'"([^"]+)"$', folder_str) or re.search(r' ([^ ]+)$', folder_str)
-                    if match: clean_folders.append(match.group(1))
-                    else: clean_folders.append(folder_str)
-
-                selected_folder = st.selectbox("📂 Select Folder", clean_folders, index=clean_folders.index("INBOX") if "INBOX" in clean_folders else 0)
-                
-                with st.expander("⚙️ Advanced Settings", expanded=True):
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        max_results = st.number_input("Count", min_value=1, value=10)
-                        rep_dom = st.checkbox("Change 'From' Domain?")
-                        p_from = st.text_input("Tag Domain", value="[P_FROM]") if rep_dom else "[P_FROM]"
-                    with c2:
-                        std_headers = st.checkbox("Set To=[*to], Date=[*date]?")
-                        clean_auth = st.checkbox("Remove DKIM/SPF headers?")
-                        name_by_subj = st.checkbox("Name files by Subject?")
+                    st.write("")
+                    selected_folder = st.selectbox("Target Folder", clean_folders, index=clean_folders.index("INBOX") if "INBOX" in clean_folders else 0)
                     
-                    custom_headers_text = st.text_area("Custom Headers (Key:Value)", height=70)
-
-                if st.button("🚀 START DOWNLOAD", type="primary"):
-                    mail.select(f'"{selected_folder}"', readonly=True)
-                    typ, data = mail.search(None, 'ALL')
-                    id_list = data[0].split()
-                    id_list.reverse()
-                    id_list = id_list[:max_results]
-                    
-                    if not id_list:
-                        st.error("No emails found.")
-                    else:
-                        progress_bar = st.progress(0)
-                        zip_buffer = io.BytesIO()
+                    with st.expander("⚙️ FILTER & CONFIGURATION", expanded=True):
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            max_results = st.number_input("Limit Emails", min_value=1, value=10)
+                            rep_dom = st.checkbox("Change Domain (@)")
+                            p_from = st.text_input("New Domain", value="[P_FROM]") if rep_dom else "[P_FROM]"
+                        with c2:
+                            std_headers = st.checkbox("Mask Headers (To/Date)")
+                            clean_auth = st.checkbox("Strip Auth (DKIM/SPF)")
+                            name_by_subj = st.checkbox("Filename = Subject")
                         
-                        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
-                            for i, email_id in enumerate(id_list):
-                                try:
-                                    typ, msg_data = mail.fetch(email_id, '(RFC822)')
-                                    raw_bytes = msg_data[0][1]
-                                    
-                                    separator = b'\r\n\r\n'
-                                    split_index = raw_bytes.find(separator)
-                                    if split_index == -1: 
-                                        separator = b'\n\n'
+                        custom_headers_text = st.text_area("Inject Custom Headers (Key:Value)", height=70)
+
+                    if st.button("📥 START EXTRACTION PROCESS", type="primary", use_container_width=True):
+                        mail.select(f'"{selected_folder}"', readonly=True)
+                        typ, data = mail.search(None, 'ALL')
+                        id_list = data[0].split()
+                        id_list.reverse()
+                        id_list = id_list[:max_results]
+                        
+                        if not id_list:
+                            st.error("Folder is empty.")
+                        else:
+                            progress_bar = st.progress(0)
+                            zip_buffer = io.BytesIO()
+                            status_text = st.empty()
+                            
+                            with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+                                for i, email_id in enumerate(id_list):
+                                    status_text.text(f"Processing {i+1}/{len(id_list)}...")
+                                    try:
+                                        typ, msg_data = mail.fetch(email_id, '(RFC822)')
+                                        raw_bytes = msg_data[0][1]
+                                        
+                                        # Split Header/Body
+                                        separator = b'\r\n\r\n'
                                         split_index = raw_bytes.find(separator)
-                                    
-                                    header_bytes = raw_bytes[:split_index] if split_index != -1 else raw_bytes
-                                    body_bytes = raw_bytes[split_index + len(separator):] if split_index != -1 else b""
-                                    
-                                    mime_headers = email.message_from_bytes(header_bytes)
-                                    original_subj = mime_headers.get('Subject', 'no_subject')
+                                        if split_index == -1: 
+                                            separator = b'\n\n'
+                                            split_index = raw_bytes.find(separator)
+                                        
+                                        header_bytes = raw_bytes[:split_index] if split_index != -1 else raw_bytes
+                                        body_bytes = raw_bytes[split_index + len(separator):] if split_index != -1 else b""
+                                        
+                                        mime_headers = email.message_from_bytes(header_bytes)
+                                        original_subj = mime_headers.get('Subject', 'no_subject')
 
-                                    if rep_dom and mime_headers.get('From'):
-                                        new_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime_headers['From'])
-                                        del mime_headers['From']; mime_headers['From'] = new_from
-                                    
-                                    if std_headers:
-                                        if 'To' in mime_headers: del mime_headers['To']
-                                        mime_headers['To'] = '[*to]'
-                                        if 'Date' in mime_headers: del mime_headers['Date']
-                                        mime_headers['Date'] = '[*date]'
-                                    
-                                    if custom_headers_text:
-                                        for line in custom_headers_text.split('\n'):
-                                            if ":" in line:
-                                                k, v = line.split(":", 1)
-                                                if k.strip() in mime_headers: del mime_headers[k.strip()]
-                                                mime_headers[k.strip()] = v.strip()
-                                    
-                                    if clean_auth:
-                                        for h in ['DKIM-Signature', 'Authentication-Results', 'Received-SPF']:
-                                            while h in mime_headers: del mime_headers[h]
+                                        # Transformations
+                                        if rep_dom and mime_headers.get('From'):
+                                            new_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime_headers['From'])
+                                            del mime_headers['From']; mime_headers['From'] = new_from
+                                        
+                                        if std_headers:
+                                            if 'To' in mime_headers: del mime_headers['To']
+                                            mime_headers['To'] = '[*to]'
+                                            if 'Date' in mime_headers: del mime_headers['Date']
+                                            mime_headers['Date'] = '[*date]'
+                                        
+                                        if custom_headers_text:
+                                            for line in custom_headers_text.split('\n'):
+                                                if ":" in line:
+                                                    k, v = line.split(":", 1)
+                                                    if k.strip() in mime_headers: del mime_headers[k.strip()]
+                                                    mime_headers[k.strip()] = v.strip()
+                                        
+                                        if clean_auth:
+                                            for h in ['DKIM-Signature', 'Authentication-Results', 'Received-SPF', 'ARC-Authentication-Results']:
+                                                while h in mime_headers: del mime_headers[h]
 
-                                    final_bytes = mime_headers.as_bytes() + b'\r\n\r\n' + body_bytes
-                                    
-                                    fname = f"{i+1}_{clean_filename(original_subj)}.txt" if name_by_subj else f"email_{i+1}.txt"
-                                    zip_file.writestr(fname, final_bytes)
-                                    progress_bar.progress((i + 1) / len(id_list))
-                                except: continue
-                        
-                        st.success("🎉 Done!")
-                        st.download_button("📥 Download ZIP", zip_buffer.getvalue(), "emails_processed.zip", "application/zip")
-                mail.logout()
-        else:
-             st.info("👈 Connecti b3da f jnb lissr.")
-
-# ==========================================
-# APP 2: HTML FUSION EDITOR
-# ==========================================
-elif app_mode == "💻 HTML Fusion Editor":
-    st.title("💻 HTML Fusion Editor")
-    
-    # Hna fin kanqraw V6.html
-    if os.path.exists("V6.html"):
-        with open("V6.html", "r", encoding="utf-8") as f:
-            html_code = f.read()
-        components.html(html_code, height=1000, scrolling=True)
-    else:
-        st.error("⚠️ Fichier 'V6.html' ma kaynch f Repository GitHub!")
-        st.info("3afak uploadé V6.html m3a app.py")
+                                        final_bytes = mime_headers.as_bytes() + b'\r\n\r\n' + body_bytes
+                                        
+                                        fname = f"{i+1}_{clean_filename(original_subj)}.txt" if name_by_subj else f"email_{i+1}.txt"
+                                        zip_file.writestr(fname, final_bytes)
+                                        progress_bar.progress((i + 1) / len(id_list))
+                                    except: continue
+                            
+                            status_text.empty()
+                            st.success("✅ Extraction Complete")
+                            st.download_button("💾 DOWNLOAD ZIP ARCHIVE", zip_buffer.getvalue(), "emails_clean.zip", "application/zip", use_container_width=True)
+                    mail.logout()
+            else:
+                 st.info("Waiting for connection...")
