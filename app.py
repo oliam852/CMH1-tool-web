@@ -16,24 +16,35 @@ st.set_page_config(
     initial_sidebar_state="expanded" # Hna golna lih ibda m7lol
 )
 
-# --- 2. CSS FOR PRO LOOK (Fixed Sidebar) ---
+# --- 2. CSS FOR PRO LOOK (Fixed & Clean) ---
 st.markdown("""
 <style>
-    /* Background Page */
+    /* 1. Global Background */
     .stApp {
         background-color: #1a1b26;
     }
     
-    /* Padding adjustments */
+    /* 2. Hide Top Decoration (Dak l-khat lmlwwen lfoq) */
+    [data-testid="stDecoration"] {
+        display: none;
+    }
+    
+    /* 3. Fix Header & Hide "Keybo..." glitch */
+    header[data-testid="stHeader"] {
+        background-color: #1a1b26 !important;
+        z-index: 99999 !important; /* Ntl3oh foq ay ktaba khra */
+    }
+    
+    /* 4. Fix Padding */
     .block-container {
-        padding-top: 2rem !important; /* Zdna chwya bach yban header */
+        padding-top: 3rem !important;
         padding-bottom: 0rem !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
         max-width: 100% !important;
     }
     
-    /* Sidebar Design */
+    /* 5. Sidebar Design */
     [data-testid="stSidebar"] {
         background-color: #16161e;
         border-right: 1px solid #2a2c3d;
@@ -45,13 +56,13 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
     
-    /* HEADER FIX: Hna rj3nah yban walakin b loun dark */
-    header[data-testid="stHeader"] {
-        background-color: #1a1b26 !important;
-        visibility: visible !important; /* Rj3nah visible */
+    /* 6. Fix Toggle Button (Ssem li kan fih mochkil) */
+    button[kind="header"] {
+        background-color: transparent !important;
+        color: #a9b1d6 !important;
     }
     
-    /* Radio Button Style */
+    /* 7. Radio Button Style */
     div[role="radiogroup"] > label > div:first-of-type {
         background-color: #2a2c3d !important;
     }
@@ -59,15 +70,15 @@ st.markdown("""
          color: #c0caf5 !important;
     }
 
-    /* Footer Hide */
+    /* 8. Hide Footer */
     footer {
         visibility: hidden;
     }
     
-    /* iframe styling */
+    /* 9. Iframe Shadow */
     iframe {
         border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -245,3 +256,4 @@ elif app_mode == "📧 IMAP Email Tool":
                         st.success("Done!")
                         st.download_button("💾 SAVE ZIP", zip_buf.getvalue(), "emails.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
