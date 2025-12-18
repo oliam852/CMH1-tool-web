@@ -11,12 +11,12 @@ from email.header import decode_header
 # --- 1. CONFIGURATION ---
 st.set_page_config(
     page_title="CMH1 Fusion", 
-    page_icon="⚡", 
+    page_icon="🚀", 
     layout="wide",
-    initial_sidebar_state="collapsed" # Hna hbbtna sidebar
+    initial_sidebar_state="collapsed"
 )
 
-# --- 2. CSS FOR CUSTOM TABS & HIDING SIDEBAR ---
+# --- 2. CSS FOR CUSTOM TABS & CLEAN LOOK ---
 st.markdown("""
 <style>
     /* Global Background */
@@ -29,7 +29,7 @@ st.markdown("""
         display: none;
     }
     
-    /* 2. Custom Tabs Styling (Navigation Bar) */
+    /* 2. Custom Tabs Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
         background-color: #16161e;
@@ -60,7 +60,7 @@ st.markdown("""
         color: #00f5c3;
     }
 
-    /* Remove Top Decoration */
+    /* Remove Decoration */
     [data-testid="stDecoration"] {
         display: none;
     }
@@ -75,16 +75,20 @@ st.markdown("""
     }
 
     /* Inputs Styling */
-    .stTextInput input, .stNumberInput input {
+    .stTextInput input, .stNumberInput input, .stTextArea textarea {
         background-color: #24283b !important;
         color: #c0caf5 !important;
         border: 1px solid #414868 !important;
+    }
+    
+    /* Buttons */
+    .stButton button {
+        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- 3. NAVIGATION (TABS) ---
-# Hada howa l-menu l-jdid li lfoq
 tab1, tab2 = st.tabs(["💻 HTML FUSION EDITOR", "📧 IMAP EMAIL TOOL"])
 
 # ==========================================
@@ -94,16 +98,15 @@ with tab1:
     if os.path.exists("V6.html"):
         with open("V6.html", "r", encoding="utf-8") as f:
             html_code = f.read()
-        # Height adjustment
         components.html(html_code, height=920, scrolling=True)
     else:
-        st.error("⚠️ Fichier 'V6.html' ma kaynch f dossier!")
+        st.error("⚠️ Fichier 'V6.html' ma kaynch!")
 
 # ==========================================
-# TAB 2: IMAP TOOL (Logic dialk nfsso)
+# TAB 2: IMAP TOOL (TEXT ORIGINAL)
 # ==========================================
 with tab2:
-    # --- Helper Functions ---
+    # --- Functions ---
     def decode_header_text(header_value):
         if not header_value: return "no_subject"
         try:
@@ -134,42 +137,36 @@ with tab2:
             st.error(f"❌ Login Error: {e}")
             return None
 
-    # UI IMAP
+    # UI Content with ORIGINAL TEXT
     st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Title & Copyright
+    st.markdown("## 🚀 GMAIL/IMAP RAW TOOL")
+    st.markdown("Developed by **@ayoubrhattoy**")
+    
     col1, col2 = st.columns([1, 2], gap="large")
     
     with col1:
-        st.markdown("""
-        <div style="background:#16161e; padding:15px; border-radius:10px; border-left:4px solid #00f5c3;">
-            <h4 style="margin:0; color:white;">🔐 Access Credentials</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        st.write("")
+        st.info("🔐 Login Credentials")
+        email_user = st.text_input("👉 Email:", placeholder="example@gmail.com")
+        app_pass = st.text_input("👉 App Password:", type="password")
         
-        email_user = st.text_input("📧 Email Address")
-        app_pass = st.text_input("🔑 App Password", type="password")
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        st.write("")
-        if st.button("🔌 CONNECT SERVER", use_container_width=True):
+        if st.button("🔌 Connect", use_container_width=True):
             if email_user and app_pass:
                 mail = connect_imap(email_user, app_pass)
                 if mail:
                     st.session_state['mail_connected'] = True
-                    st.success("SUCCESSFULLY CONNECTED")
+                    st.success("✅ Connected!")
                     mail.logout()
                 else:
                     st.session_state['mail_connected'] = False
             else:
-                st.warning("Please check your input.")
+                st.warning("Please enter credentials.")
 
     with col2:
         if st.session_state.get('mail_connected'):
-            st.markdown("""
-            <div style="background:#16161e; padding:15px; border-radius:10px; border-left:4px solid #7aa2f7;">
-                <h4 style="margin:0; color:white;">⚙️ Configuration & Filters</h4>
-            </div>
-            """, unsafe_allow_html=True)
-            
             mail = connect_imap(email_user, app_pass)
             if mail:
                 status, folders = mail.list()
@@ -180,33 +177,36 @@ with tab2:
                     if match: clean_folders.append(match.group(1))
                     else: clean_folders.append(folder_str)
 
-                st.write("")
+                # Select Folder
                 selected_folder = st.selectbox("📂 Select Folder", clean_folders, index=clean_folders.index("INBOX") if "INBOX" in clean_folders else 0)
                 
-                with st.expander("🛠️ ADVANCED OPTIONS", expanded=True):
+                # ORIGINAL SETTINGS UI
+                with st.expander("⚙️ SETTINGS (RAW BODY PRESERVATION)", expanded=True):
                     c1, c2 = st.columns(2)
                     with c1:
-                        max_results = st.number_input("Count Limit", value=10, min_value=1)
-                        rep_dom = st.checkbox("Change Domain")
-                        p_from = st.text_input("Domain Tag", value="[P_FROM]") if rep_dom else "[P_FROM]"
+                        max_results = st.number_input("1️⃣ Count? (10):", min_value=1, value=10)
+                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain? (y/n)")
+                        p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                     with c2:
-                        std_headers = st.checkbox("Standard Headers")
-                        clean_auth = st.checkbox("Clean Authentication")
-                        name_by_subj = st.checkbox("Filename as Subject")
+                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]? (y/n)")
+                        mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID? (y/n)")
+                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers? (y/n)")
+                        name_by_subj = st.checkbox("7️⃣ Name files by Subject? (y/n)")
                     
-                    custom_headers_text = st.text_area("Custom Headers (Key:Value)")
+                    custom_headers_text = st.text_area("4️⃣ Custom Headers (Key:Value)")
 
-                st.markdown("<hr style='border-color: #2a2c3d;'>", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
                 
-                if st.button("🚀 LAUNCH EXTRACTION", type="primary", use_container_width=True):
-                    # --- CORE LOGIC ---
+                if st.button("🚀 START DOWNLOAD & PROCESS", type="primary", use_container_width=True):
                     mail.select(f'"{selected_folder}"', readonly=True)
                     typ, data = mail.search(None, 'ALL')
                     id_list = data[0].split()
                     id_list.reverse()
                     id_list = id_list[:max_results]
                     
-                    if id_list:
+                    if not id_list:
+                        st.error("📭 No emails found.")
+                    else:
                         zip_buf = io.BytesIO()
                         status_msg = st.empty()
                         prog_bar = st.progress(0)
@@ -217,6 +217,7 @@ with tab2:
                                     _, msg = mail.fetch(eid, '(RFC822)')
                                     raw = msg[0][1]
                                     
+                                    # Split Logic
                                     sep = b'\r\n\r\n'
                                     idx = raw.find(sep)
                                     if idx == -1: 
@@ -227,9 +228,9 @@ with tab2:
                                     body = raw[idx+len(sep):] if idx != -1 else b""
                                     
                                     mime = email.message_from_bytes(head)
-                                    subj = mime.get('Subject', 'no_subject')
+                                    original_subj = mime.get('Subject', 'no_subject')
 
-                                    # Filters
+                                    # LOGIC TRANSFORMATIONS
                                     if rep_dom and mime.get('From'):
                                         n_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime['From'])
                                         del mime['From']; mime['From'] = n_from
@@ -240,10 +241,6 @@ with tab2:
                                         if 'Date' in mime: del mime['Date']
                                         mime['Date'] = '[*date]'
                                     
-                                    if clean_auth:
-                                        for h in ['DKIM-Signature', 'Authentication-Results']:
-                                            while h in mime: del mime[h]
-                                    
                                     if custom_headers_text:
                                         for l in custom_headers_text.split('\n'):
                                             if ":" in l:
@@ -251,13 +248,26 @@ with tab2:
                                                 if k.strip() in mime: del mime[k.strip()]
                                                 mime[k.strip()] = v.strip()
 
+                                    if mod_eid and mime.get('Message-ID') and '@' in mime['Message-ID']:
+                                        new_mid = mime['Message-ID'].replace('@', '[EID]@', 1)
+                                        del mime['Message-ID']; mime['Message-ID'] = new_mid
+
+                                    if clean_auth:
+                                        for h in ['DKIM-Signature', 'Authentication-Results', 'Received', 'Received-SPF', 'ARC-Authentication-Results', 'ARC-Message-Signature', 'ARC-Seal']:
+                                            while h in mime: del mime[h]
+                                    
                                     fin = mime.as_bytes() + b'\r\n\r\n' + body
-                                    fn = f"{i+1}_{clean_filename(subj)}.txt" if name_by_subj else f"email_{i+1}.txt"
-                                    zf.writestr(fn, fin)
+                                    
+                                    fname = f"email_{i+1}.txt"
+                                    if name_by_subj:
+                                        subj = clean_filename(original_subj)
+                                        fname = f"{i+1}_{subj}.txt"
+
+                                    zf.writestr(fname, fin)
                                     prog_bar.progress((i+1)/len(id_list))
                                 except: continue
                         
                         prog_bar.empty()
-                        status_msg.success("Extraction Completed!")
-                        st.download_button("💾 DOWNLOAD ZIP ARCHIVE", zip_buf.getvalue(), "emails_pack.zip", "application/zip", use_container_width=True)
+                        status_msg.success("🎉 Download Complete!")
+                        st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
