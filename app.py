@@ -185,15 +185,15 @@ with tab2:
                     c1, c2 = st.columns(2)
                     with c1:
                         max_results = st.number_input("1️⃣ Count? (10):", min_value=1, value=10)
-                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain? (y/n)")
+                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain?)")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                     with c2:
-                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]? (y/n)")
-                        mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID? (y/n)")
-                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers? (y/n)")
-                        name_by_subj = st.checkbox("7️⃣ Name files by Subject? (y/n)")
+                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]?")
+                        mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID?")
+                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers?")
+                        name_by_subj = st.checkbox("7️⃣ Name files by Subject?")
                     
-                    custom_headers_text = st.text_area("4️⃣ Custom Headers (Key:Value)")
+                    custom_headers_text = st.text_area("4️⃣ Custom Value (Sender: no_reply@[RDNS])")
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
@@ -271,3 +271,4 @@ with tab2:
                         status_msg.success("🎉 Download Complete!")
                         st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
