@@ -10,13 +10,13 @@ from email.header import decode_header
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(
-    page_title="CMH1 Toolkit", 
-    page_icon="🚀", 
+    page_title="CMH1 Studio", 
+    page_icon="⚡", 
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# --- 2. CSS CLEAN (Design Nqi bla machakil) ---
+# --- 2. CSS FIXED (Hada howa li mslle7 100%) ---
 st.markdown("""
 <style>
     /* Global Background */
@@ -30,22 +30,37 @@ st.markdown("""
         border-right: 1px solid #2a2c3d;
     }
     
-    /* Header Fix */
+    /* Header Background */
     header[data-testid="stHeader"] {
         background-color: #1a1b26;
     }
 
-    /* Padding Adjustment */
+    /* Padding Adjustments */
     .block-container {
         padding-top: 2rem !important;
         padding-bottom: 0rem !important;
         max-width: 100% !important;
     }
 
-    /* Sidebar Text Color */
-    [data-testid="stSidebar"] .stMarkdown h1, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p {
+    /* FIX "KEYBO..." GLITCH:
+       Bdlna tariqa bach kanbdlo l-font. 
+       Daba kansta3mlo Selectors m7ddin bach man9issoch l-icons.
+    */
+    
+    /* Faqat nusus dyalna hya li takhod Font Inter */
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, .stMarkdown {
+        font-family: 'Inter', sans-serif !important;
         color: #a9b1d6 !important;
-        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Kanmn3o l-font yitbdel 3la l-icons dyal Streamlit */
+    button[kind="header"] span {
+        font-family: "Source Sans Pro", sans-serif !important; /* Revert to default for icons */
+    }
+
+    /* Hide default decoration */
+    [data-testid="stDecoration"] {
+        display: none;
     }
     
     /* Iframe Style */
@@ -60,20 +75,31 @@ st.markdown("""
         color: white !important;
         border: 1px solid #414868 !important;
     }
+    
+    /* Buttons Style */
+    .stButton button {
+        background-color: #00f5c3 !important;
+        color: #1a1b26 !important;
+        font-weight: bold !important;
+        border: none !important;
+    }
+    .stButton button:hover {
+        background-color: #00c49a !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- 3. SIDEBAR NAVIGATION ---
-st.sidebar.title("🚀 CMH1 TOOLKIT")
+st.sidebar.title("⚡ CMH1 STUDIO")
 st.sidebar.markdown("---")
 
 app_mode = st.sidebar.radio(
-    "Select App:",
+    "MENU",
     ["💻 HTML Fusion Editor", "📧 IMAP Email Tool"],
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("Developed by **@ayoubrhattoy**")
+st.sidebar.caption("Developed by **@ayoubrhattoy**")
 
 # ==========================================
 # APP 1: HTML FUSION EDITOR
@@ -87,7 +113,7 @@ if app_mode == "💻 HTML Fusion Editor":
         st.error("⚠️ Fichier 'V6.html' malqinahch!")
 
 # ==========================================
-# APP 2: IMAP EMAIL TOOL (TEXTE ORIGINAL)
+# APP 2: IMAP EMAIL TOOL
 # ==========================================
 elif app_mode == "📧 IMAP Email Tool":
     
@@ -123,13 +149,12 @@ elif app_mode == "📧 IMAP Email Tool":
             return None
 
     # --- UI ---
-    st.title("🚀 GMAIL/IMAP RAW TOOL")
-    st.markdown("Developed by **@ayoubrhattoy**")
+    st.markdown("## 🚀 GMAIL/IMAP RAW TOOL")
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.subheader("🔐 Login Credentials")
+        st.info("🔐 Login Credentials")
         email_user = st.text_input("👉 Email:", placeholder="example@gmail.com")
         app_pass = st.text_input("👉 App Password:", type="password")
         
@@ -157,24 +182,22 @@ elif app_mode == "📧 IMAP Email Tool":
                     if match: clean_folders.append(match.group(1))
                     else: clean_folders.append(folder_str)
 
-                st.write("---")
                 selected_folder = st.selectbox("📂 Select Folder", clean_folders, index=clean_folders.index("INBOX") if "INBOX" in clean_folders else 0)
                 
-                with st.expander("⚙️ SETTINGS (RAW BODY PRESERVATION)", expanded=True):
+                with st.expander("⚙️ SETTINGS", expanded=True):
                     c1, c2 = st.columns(2)
                     with c1:
                         max_results = st.number_input("1️⃣ Count? (10):", min_value=1, value=10)
-                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain? (y/n)")
+                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain?")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                     with c2:
-                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]? (y/n)")
-                        mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID? (y/n)")
-                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers? (y/n)")
-                        name_by_subj = st.checkbox("7️⃣ Name files by Subject? (y/n)")
+                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]?")
+                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers?")
+                        name_by_subj = st.checkbox("7️⃣ Name files by Subject?")
                     
                     custom_headers_text = st.text_area("4️⃣ Custom Headers (Key:Value)")
 
-                if st.button("🚀 START DOWNLOAD & PROCESS", type="primary"):
+                if st.button("🚀 START DOWNLOAD", type="primary"):
                     mail.select(f'"{selected_folder}"', readonly=True)
                     typ, data = mail.search(None, 'ALL')
                     id_list = data[0].split()
@@ -222,16 +245,11 @@ elif app_mode == "📧 IMAP Email Tool":
                                                 if k.strip() in mime: del mime[k.strip()]
                                                 mime[k.strip()] = v.strip()
 
-                                    if mod_eid and mime.get('Message-ID') and '@' in mime['Message-ID']:
-                                        new_mid = mime['Message-ID'].replace('@', '[EID]@', 1)
-                                        del mime['Message-ID']; mime['Message-ID'] = new_mid
-
                                     if clean_auth:
-                                        for h in ['DKIM-Signature', 'Authentication-Results', 'Received', 'Received-SPF', 'ARC-Authentication-Results', 'ARC-Message-Signature', 'ARC-Seal']:
+                                        for h in ['DKIM-Signature', 'Authentication-Results']:
                                             while h in mime: del mime[h]
                                     
                                     fin = mime.as_bytes() + b'\r\n\r\n' + body
-                                    
                                     fname = f"email_{i+1}.txt"
                                     if name_by_subj:
                                         subj = clean_filename(original_subject)
@@ -241,6 +259,6 @@ elif app_mode == "📧 IMAP Email Tool":
                                     progress.progress((i+1)/len(id_list))
                                 except: continue
                         
-                        st.success("🎉 Download Complete!")
-                        st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip")
+                        st.success("🎉 Complete!")
+                        st.download_button("📥 Download ZIP", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip")
                 mail.logout()
