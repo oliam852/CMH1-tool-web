@@ -106,7 +106,7 @@ with tab1:
 # TAB 2: IMAP TOOL (TEXT ORIGINAL)
 # ==========================================
 with tab2:
-    # --- Functions ---
+    # --- Helper Functions ---
     def decode_header_text(header_value):
         if not header_value: return "no_subject"
         try:
@@ -127,6 +127,51 @@ with tab2:
         decoded_subj = decode_header_text(subject)
         clean = re.sub(r'[^a-zA-Z0-9\s_\-\u00C0-\u017F]', '', decoded_subj) 
         return clean.strip().replace(' ', '_')[:60]
+    
+    # Function to strip HTML manually (Regex) to be dependency-free
+    def clean_html_to_plain(html_content):
+        # Basic regex to strip tags
+        clean = re.sub(r'<[^>]+>', ' ', html_content)
+        # Collapse whitespace
+        clean = re.sub(r'\s+', ' ', clean).strip()
+        return clean
+
+    def get_email_body_text(msg_obj):
+        """Extracts plain text body, preferring plain text over HTML."""
+        body_text = ""
+        if msg_obj.is_multipart():
+            # Walk through parts
+            for part in msg_obj.walk():
+                ctype = part.get_content_type()
+                cdispo = str(part.get('Content-Disposition'))
+                
+                # Skip attachments
+                if 'attachment' in cdispo:
+                    continue
+                
+                try:
+                    payload = part.get_payload(decode=True)
+                    if not payload: continue
+                    decoded_payload = payload.decode('utf-8', 'ignore')
+                    
+                    if ctype == 'text/plain':
+                        return decoded_payload # Best case, return immediately
+                    elif ctype == 'text/html':
+                        body_text = clean_html_to_plain(decoded_payload) # Backup
+                except: continue
+        else:
+            # Not multipart
+            try:
+                payload = msg_obj.get_payload(decode=True)
+                if payload:
+                    decoded = payload.decode('utf-8', 'ignore')
+                    if msg_obj.get_content_type() == 'text/html':
+                         body_text = clean_html_to_plain(decoded)
+                    else:
+                        body_text = decoded
+            except: pass
+            
+        return body_text
 
     def connect_imap(user, password):
         try:
@@ -137,10 +182,9 @@ with tab2:
             st.error(f"❌ Login Error: {e}")
             return None
 
-    # UI Content with ORIGINAL TEXT
+    # UI Content
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Title & Copyright
     st.markdown("## 🚀 GMAIL/IMAP RAW TOOL")
     st.markdown("Developed by **@ayoubrhattoy**")
     
@@ -184,16 +228,21 @@ with tab2:
                 with st.expander("⚙️ SETTINGS (RAW BODY PRESERVATION)", expanded=True):
                     c1, c2 = st.columns(2)
                     with c1:
-                        max_results = st.number_input("1️⃣ Count (10):", min_value=1, value=10)
-                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain)")
+                        max_results = st.number_input("1️⃣ Count? (10):", min_value=1, value=10)
+                        rep_dom = st.checkbox("2️⃣ Change 'From' Domain? (y/n)")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
+                        
+                        # NEW OPTION HERE
+                        st.markdown("---")
+                        extract_plain_only = st.checkbox("8️⃣ Extract Body Only? (Merge to 1 file with __SEP__)", help="This will ignore headers and zip files, creating one single txt file.")
+
                     with c2:
-                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]")
-                        mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID")
-                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers")
-                        name_by_subj = st.checkbox("7️⃣ Name files by Subject")
+                        std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]? (y/n)")
+                        mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID? (y/n)")
+                        clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers? (y/n)")
+                        name_by_subj = st.checkbox("7️⃣ Name files by Subject? (y/n)")
                     
-                    custom_headers_text = st.text_area("4️⃣ Custom Value (Sender: no_reply@[RDNS])")
+                    custom_headers_text = st.text_area("4️⃣ Custom Headers (Key:Value)")
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
@@ -207,69 +256,80 @@ with tab2:
                     if not id_list:
                         st.error("📭 No emails found.")
                     else:
-                        zip_buf = io.BytesIO()
                         status_msg = st.empty()
                         prog_bar = st.progress(0)
                         
-                        with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
+                        # === LOGIC BRANCH: EXTRACT TEXT ONLY vs ORIGINAL ===
+                        if extract_plain_only:
+                            # --- OPTION 8: TEXT ONLY & MERGE ---
+                            full_extracted_text = []
                             for i, eid in enumerate(id_list):
                                 try:
-                                    _, msg = mail.fetch(eid, '(RFC822)')
-                                    raw = msg[0][1]
+                                    _, msg_data = mail.fetch(eid, '(RFC822)')
+                                    raw_bytes = msg_data[0][1]
+                                    email_message = email.message_from_bytes(raw_bytes)
                                     
-                                    # Split Logic
-                                    sep = b'\r\n\r\n'
-                                    idx = raw.find(sep)
-                                    if idx == -1: 
-                                        sep = b'\n\n'
-                                        idx = raw.find(sep)
+                                    # Get clean body
+                                    body_content = get_email_body_text(email_message)
                                     
-                                    head = raw[:idx] if idx != -1 else raw
-                                    body = raw[idx+len(sep):] if idx != -1 else b""
+                                    if body_content:
+                                        full_extracted_text.append(body_content)
                                     
-                                    mime = email.message_from_bytes(head)
-                                    original_subj = mime.get('Subject', 'no_subject')
-
-                                    # LOGIC TRANSFORMATIONS
-                                    if rep_dom and mime.get('From'):
-                                        n_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime['From'])
-                                        del mime['From']; mime['From'] = n_from
-                                    
-                                    if std_headers:
-                                        if 'To' in mime: del mime['To']
-                                        mime['To'] = '[*to]'
-                                        if 'Date' in mime: del mime['Date']
-                                        mime['Date'] = '[*date]'
-                                    
-                                    if custom_headers_text:
-                                        for l in custom_headers_text.split('\n'):
-                                            if ":" in l:
-                                                k, v = l.split(":", 1)
-                                                if k.strip() in mime: del mime[k.strip()]
-                                                mime[k.strip()] = v.strip()
-
-                                    if mod_eid and mime.get('Message-ID') and '@' in mime['Message-ID']:
-                                        new_mid = mime['Message-ID'].replace('@', '[EID]@', 1)
-                                        del mime['Message-ID']; mime['Message-ID'] = new_mid
-
-                                    if clean_auth:
-                                        for h in ['DKIM-Signature', 'Authentication-Results', 'Received', 'Received-SPF', 'ARC-Authentication-Results', 'ARC-Message-Signature', 'ARC-Seal']:
-                                            while h in mime: del mime[h]
-                                    
-                                    fin = mime.as_bytes() + b'\r\n\r\n' + body
-                                    
-                                    fname = f"email_{i+1}.txt"
-                                    if name_by_subj:
-                                        subj = clean_filename(original_subj)
-                                        fname = f"{i+1}_{subj}.txt"
-
-                                    zf.writestr(fname, fin)
                                     prog_bar.progress((i+1)/len(id_list))
                                 except: continue
-                        
-                        prog_bar.empty()
-                        status_msg.success("🎉 Download Complete!")
-                        st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
-                mail.logout()
+                                
+                            # Merge with Separator
+                            final_output = "\n__SEP__\n".join(full_extracted_text)
+                            
+                            prog_bar.empty()
+                            status_msg.success(f"🎉 Extracted {len(full_extracted_text)} emails into Text Plain!")
+                            
+                            st.download_button(
+                                label="📥 Download Merged Text File (.txt)", 
+                                data=final_output, 
+                                file_name="emails_bodies_merged.txt", 
+                                mime="text/plain"
+                            )
 
+                        else:
+                            # --- ORIGINAL LOGIC (ZIP FILES) ---
+                            zip_buf = io.BytesIO()
+                            with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
+                                for i, eid in enumerate(id_list):
+                                    try:
+                                        _, msg = mail.fetch(eid, '(RFC822)')
+                                        raw = msg[0][1]
+                                        
+                                        # Split Logic
+                                        sep = b'\r\n\r\n'
+                                        idx = raw.find(sep)
+                                        if idx == -1: 
+                                            sep = b'\n\n'
+                                            idx = raw.find(sep)
+                                        
+                                        head = raw[:idx] if idx != -1 else raw
+                                        body = raw[idx+len(sep):] if idx != -1 else b""
+                                        
+                                        mime = email.message_from_bytes(head)
+                                        original_subj = mime.get('Subject', 'no_subject')
 
+                                        # LOGIC TRANSFORMATIONS
+                                        if rep_dom and mime.get('From'):
+                                            n_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime['From'])
+                                            del mime['From']; mime['From'] = n_from
+                                        
+                                        if std_headers:
+                                            if 'To' in mime: del mime['To']
+                                            mime['To'] = '[*to]'
+                                            if 'Date' in mime: del mime['Date']
+                                            mime['Date'] = '[*date]'
+                                        
+                                        if custom_headers_text:
+                                            for l in custom_headers_text.split('\n'):
+                                                if ":" in l:
+                                                    k, v = l.split(":", 1)
+                                                    if k.strip() in mime: del mime[k.strip()]
+                                                    mime[k.strip()] = v.strip()
+
+                                        if mod_eid and mime.get('Message-ID') and '@' in mime['Message-ID']:
+                                            new_mid = mime['Message-ID
