@@ -332,4 +332,25 @@ with tab2:
                                                     mime[k.strip()] = v.strip()
 
                                         if mod_eid and mime.get('Message-ID') and '@' in mime['Message-ID']:
-                                            new_mid = mime['Message-ID
+                                            new_mid = mime['Message-ID'].replace('@', '[EID]@', 1)
+                                            del mime['Message-ID']; mime['Message-ID'] = new_mid
+
+                                        if clean_auth:
+                                            for h in ['DKIM-Signature', 'Authentication-Results', 'Received', 'Received-SPF', 'ARC-Authentication-Results', 'ARC-Message-Signature', 'ARC-Seal']:
+                                                while h in mime: del mime[h]
+                                        
+                                        fin = mime.as_bytes() + b'\r\n\r\n' + body
+                                        
+                                        fname = f"email_{i+1}.txt"
+                                        if name_by_subj:
+                                            subj = clean_filename(original_subj)
+                                            fname = f"{i+1}_{subj}.txt"
+
+                                        zf.writestr(fname, fin)
+                                        prog_bar.progress((i+1)/len(id_list))
+                                    except: continue
+                            
+                            prog_bar.empty()
+                            status_msg.success("🎉 Download Complete!")
+                            st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
+                mail.logout()
