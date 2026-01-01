@@ -77,7 +77,7 @@ st.markdown("""
     /* Inputs Styling */
     .stTextInput input, .stNumberInput input, .stTextArea textarea {
         background-color: #24283b !important;
-        color: #c0caf5 !important;
+        color: #D3D6E4 !important;
         border: 1px solid #414868 !important;
     }
     
@@ -354,6 +354,7 @@ with tab2:
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
 
 
 
