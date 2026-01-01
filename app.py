@@ -77,27 +77,30 @@ st.markdown("""
         padding-bottom: 0rem !important;
     }
 
+    # ... (كود قديم)
     /* Inputs Styling */
     .stTextInput input, .stNumberInput input, .stTextArea textarea {
         background-color: #24283b !important;
-        color: #D3D6E4 !important;
+        color: #c0caf5 !important;
         border: 1px solid #414868 !important;
     }
+
+    /* زيد هادو هنا باش يتحكمو فالعناوين (Labels) */
+    [data-testid="stWidgetLabel"] p {
+        color: #c0caf5 !important;
+    }
+
+    .stMarkdown p {
+        color: #c0caf5 !important;
+    }
+# ... (باقي الكود)
     
     /* Buttons */
     .stButton button {
         font-weight: bold;
     }
 
-       /* NEWWW */
-    [data-testid="stWidgetLabel"] p {
-    color: #D3D6E4 !important;
-}
-
-/* هاد السطر إضافي باش نأكدو التغيير على أي نص كاين فـ Markdown */
-.stMarkdown p {
-    color: #D3D6E4 !important;
-}
+    
 </style>
 """, unsafe_allow_html=True)
 
