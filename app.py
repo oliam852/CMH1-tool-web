@@ -47,7 +47,7 @@ st.markdown("""
         border: none;
         padding: 0 20px;
     }
-    label {
+    .label {
     color: #D3D6E4 !important;
 }
 
@@ -357,6 +357,7 @@ with tab2:
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
 
 
 
