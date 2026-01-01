@@ -91,12 +91,12 @@ st.markdown("""
 
        /* NEWWW */
     [data-testid="stWidgetLabel"] p {
-    color: #c0caf5 !important;
+    color: #D3D6E4 !important;
 }
 
 /* هاد السطر إضافي باش نأكدو التغيير على أي نص كاين فـ Markdown */
 .stMarkdown p {
-    color: #c0caf5 !important;
+    color: #D3D6E4 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -367,6 +367,7 @@ with tab2:
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
 
 
 
