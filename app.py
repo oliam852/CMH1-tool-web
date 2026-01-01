@@ -32,7 +32,7 @@ st.markdown("""
     /* 2. Custom Tabs Styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
-        background-color: #16161e;
+        background-color: #D6D6E1;
         padding: 10px 20px;
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.2);
@@ -354,4 +354,5 @@ with tab2:
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
 
