@@ -188,6 +188,56 @@ with tab2:
             except: pass
             
         return body_text
+    
+    def detect_duplicates(email_list):
+        """Detect duplicate emails based on Message-ID and Subject+From combination"""
+        import hashlib
+        
+        seen_ids = set()
+        seen_hashes = set()
+        duplicates = []
+        unique_emails = []
+        
+        for idx, email_data in enumerate(email_list):
+            msg_obj = email_data['msg']
+            email_id = email_data['id']
+            
+            # Check Message-ID
+            msg_id = msg_obj.get('Message-ID', '')
+            if msg_id and msg_id in seen_ids:
+                duplicates.append({
+                    'index': idx + 1,
+                    'id': email_id,
+                    'reason': 'Same Message-ID',
+                    'subject': msg_obj.get('Subject', 'No Subject')
+                })
+                continue
+            
+            # Check Subject + From + Date hash
+            subject = msg_obj.get('Subject', '')
+            from_addr = msg_obj.get('From', '')
+            date = msg_obj.get('Date', '')
+            
+            # Create hash
+            combo = f"{subject}|{from_addr}|{date}".encode('utf-8')
+            hash_val = hashlib.md5(combo).hexdigest()
+            
+            if hash_val in seen_hashes:
+                duplicates.append({
+                    'index': idx + 1,
+                    'id': email_id,
+                    'reason': 'Same Subject+From+Date',
+                    'subject': subject
+                })
+                continue
+            
+            # Mark as seen
+            if msg_id:
+                seen_ids.add(msg_id)
+            seen_hashes.add(hash_val)
+            unique_emails.append(email_data)
+        
+        return unique_emails, duplicates
 
     def connect_imap(user, password):
         try:
@@ -229,25 +279,47 @@ with tab2:
         if st.session_state.get('mail_connected'):
             mail = connect_imap(email_user, app_pass)
             if mail:
-                status, folders = mail.list()
-                clean_folders = []
-                for folder in folders:
-                    folder_str = folder.decode()
-                    match = re.search(r'"([^"]+)"$', folder_str) or re.search(r' ([^ ]+)$', folder_str)
-                    if match: clean_folders.append(match.group(1))
-                    else: clean_folders.append(folder_str)
+                # --- PERFORMANCE: Cache folder list ---
+                cache_key = f"folders_{email_user}"
+                if cache_key not in st.session_state or st.session_state.get('refresh_folders'):
+                    status, folders = mail.list()
+                    clean_folders = []
+                    for folder in folders:
+                        folder_str = folder.decode()
+                        match = re.search(r'"([^"]+)"$', folder_str) or re.search(r' ([^ ]+)$', folder_str)
+                        if match: clean_folders.append(match.group(1))
+                        else: clean_folders.append(folder_str)
+                    
+                    st.session_state[cache_key] = clean_folders
+                    st.session_state['refresh_folders'] = False
+                else:
+                    clean_folders = st.session_state[cache_key]
+                
+                # Refresh button for folders
+                if st.button("🔄 Refresh Folders", help="Update folder list"):
+                    st.session_state['refresh_folders'] = True
+                    st.rerun()
 
-                # Get email counts for each folder
-                folder_counts = {}
-                for folder in clean_folders:
-                    try:
-                        mail.select(f'"{folder}"', readonly=True)
-                        typ, data = mail.search(None, 'ALL')
-                        if typ == 'OK':
-                            count = len(data[0].split()) if data[0] else 0
-                            folder_counts[folder] = count
-                    except:
-                        folder_counts[folder] = 0
+                # Get email counts for each folder (WITH CACHING)
+                count_cache_key = f"counts_{email_user}_{selected_folder if 'selected_folder' in locals() else 'all'}"
+                
+                # Check if we need to refresh counts
+                if count_cache_key not in st.session_state or st.session_state.get('refresh_counts'):
+                    folder_counts = {}
+                    with st.spinner("📊 Counting emails..."):
+                        for folder in clean_folders:
+                            try:
+                                mail.select(f'"{folder}"', readonly=True)
+                                typ, data = mail.search(None, 'ALL')
+                                if typ == 'OK':
+                                    count = len(data[0].split()) if data[0] else 0
+                                    folder_counts[folder] = count
+                            except:
+                                folder_counts[folder] = 0
+                    st.session_state[count_cache_key] = folder_counts
+                    st.session_state['refresh_counts'] = False
+                else:
+                    folder_counts = st.session_state[count_cache_key]
                 
                 # Create folder display with counts
                 folder_options = [f"{folder} ({folder_counts.get(folder, 0)} emails)" for folder in clean_folders]
@@ -312,6 +384,10 @@ with tab2:
                         mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID")
                         clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers")
                         name_by_subj = st.checkbox("7️⃣ Name files by Subject")
+                        
+                        # NEW: Duplicate Detection
+                        st.markdown("---")
+                        detect_dupes = st.checkbox("9️⃣ Remove Duplicates", help="Skip duplicate emails based on Message-ID and Subject+From+Date")
                     
                     custom_headers_text = st.text_area("4️⃣ Custom Headers (Key:Value)")
 
@@ -331,6 +407,47 @@ with tab2:
                     else:
                         status_msg = st.empty()
                         prog_bar = st.progress(0)
+                        
+                        # === DUPLICATE DETECTION (if enabled) ===
+                        if detect_dupes:
+                            status_msg.info("🔍 Detecting duplicates...")
+                            email_data_list = []
+                            
+                            for i, eid in enumerate(id_list):
+                                try:
+                                    _, msg_data = mail.fetch(eid, '(RFC822)')
+                                    raw_bytes = msg_data[0][1]
+                                    email_message = email.message_from_bytes(raw_bytes)
+                                    email_data_list.append({
+                                        'msg': email_message,
+                                        'id': eid,
+                                        'raw': raw_bytes
+                                    })
+                                except:
+                                    continue
+                            
+                            # Detect and remove duplicates
+                            unique_emails, duplicates = detect_duplicates(email_data_list)
+                            
+                            if duplicates:
+                                status_msg.warning(f"⚠️ Found {len(duplicates)} duplicate(s). Processing {len(unique_emails)} unique emails.")
+                                
+                                # Show duplicate details in expander
+                                with st.expander(f"📋 View {len(duplicates)} Duplicates"):
+                                    for dup in duplicates[:20]:  # Show first 20
+                                        st.caption(f"Email #{dup['index']}: {dup['subject'][:50]} - {dup['reason']}")
+                                    if len(duplicates) > 20:
+                                        st.caption(f"... and {len(duplicates)-20} more")
+                            else:
+                                status_msg.success("✅ No duplicates found!")
+                            
+                            # Update id_list to only unique emails
+                            id_list = [item['id'] for item in unique_emails]
+                            
+                            if not id_list:
+                                st.error("📭 All emails were duplicates!")
+                                mail.logout()
+                                st.stop()
                         
                         # === LOGIC BRANCH: EXTRACT TEXT ONLY vs ORIGINAL ===
                         if extract_plain_only:
