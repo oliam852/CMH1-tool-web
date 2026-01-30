@@ -248,9 +248,18 @@ with tab2:
                         rep_dom = st.checkbox("2️⃣ Change 'From' Domain")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                         
-                        # NEW OPTION HERE
+                        # NEW OPTION HERE - UPDATED
                         st.markdown("---")
-                        extract_plain_only = st.checkbox("8️⃣ Extract Body Only? (Merge to 1 file with __SEP__)", help="This will ignore headers and zip files, creating one single txt file.")
+                        extract_plain_only = st.checkbox("8️⃣ Extract Body Only?", help="Extract only email body text without headers")
+                        
+                        # Export format selection - NEW FEATURE
+                        export_format = "Merged"  # Default value
+                        if extract_plain_only:
+                            export_format = st.radio(
+                                "📤 Export Format:",
+                                options=["Merged (1 file with __SEP__)", "Separate files (ZIP)"],
+                                horizontal=True
+                            )
 
                     with c2:
                         std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]")
@@ -277,38 +286,79 @@ with tab2:
                         
                         # === LOGIC BRANCH: EXTRACT TEXT ONLY vs ORIGINAL ===
                         if extract_plain_only:
-                            # --- OPTION 8: TEXT ONLY & MERGE ---
-                            full_extracted_text = []
-                            for i, eid in enumerate(id_list):
-                                try:
-                                    _, msg_data = mail.fetch(eid, '(RFC822)')
-                                    raw_bytes = msg_data[0][1]
-                                    email_message = email.message_from_bytes(raw_bytes)
+                            # Check which format user selected
+                            if "Merged" in export_format:
+                                # --- OPTION: MERGED TEXT FILE ---
+                                full_extracted_text = []
+                                for i, eid in enumerate(id_list):
+                                    try:
+                                        _, msg_data = mail.fetch(eid, '(RFC822)')
+                                        raw_bytes = msg_data[0][1]
+                                        email_message = email.message_from_bytes(raw_bytes)
+                                        
+                                        # Get clean body
+                                        body_content = get_email_body_text(email_message)
+                                        
+                                        if body_content:
+                                            full_extracted_text.append(body_content)
+                                        
+                                        prog_bar.progress((i+1)/len(id_list))
+                                    except: continue
                                     
-                                    # Get clean body
-                                    body_content = get_email_body_text(email_message)
-                                    
-                                    if body_content:
-                                        full_extracted_text.append(body_content)
-                                    
-                                    prog_bar.progress((i+1)/len(id_list))
-                                except: continue
+                                # Merge with Separator
+                                final_output = "\n__SEP__\n".join(full_extracted_text)
                                 
-                            # Merge with Separator
-                            final_output = "\n__SEP__\n".join(full_extracted_text)
+                                prog_bar.empty()
+                                status_msg.success(f"🎉 Extracted {len(full_extracted_text)} emails into 1 merged file!")
+                                
+                                st.download_button(
+                                    label="📥 Download Merged Text File (.txt)", 
+                                    data=final_output, 
+                                    file_name="emails_bodies_merged.txt", 
+                                    mime="text/plain"
+                                )
                             
-                            prog_bar.empty()
-                            status_msg.success(f"🎉 Extracted {len(full_extracted_text)} emails into Text Plain!")
-                            
-                            st.download_button(
-                                label="📥 Download Merged Text File (.txt)", 
-                                data=final_output, 
-                                file_name="emails_bodies_merged.txt", 
-                                mime="text/plain"
-                            )
+                            else:
+                                # --- OPTION: SEPARATE FILES IN ZIP ---
+                                zip_buf = io.BytesIO()
+                                with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
+                                    for i, eid in enumerate(id_list):
+                                        try:
+                                            _, msg_data = mail.fetch(eid, '(RFC822)')
+                                            raw_bytes = msg_data[0][1]
+                                            email_message = email.message_from_bytes(raw_bytes)
+                                            
+                                            # Get clean body
+                                            body_content = get_email_body_text(email_message)
+                                            
+                                            if body_content:
+                                                # Create filename
+                                                if name_by_subj:
+                                                    original_subj = email_message.get('Subject', 'no_subject')
+                                                    subj = clean_filename(original_subj)
+                                                    fname = f"{i+1}_{subj}.txt"
+                                                else:
+                                                    fname = f"email_{i+1}.txt"
+                                                
+                                                # Write to zip
+                                                zf.writestr(fname, body_content.encode('utf-8'))
+                                            
+                                            prog_bar.progress((i+1)/len(id_list))
+                                        except: continue
+                                
+                                prog_bar.empty()
+                                status_msg.success(f"🎉 Extracted {len(id_list)} emails into separate files!")
+                                
+                                st.download_button(
+                                    label="📥 Download ZIP File (Separate Text Files)", 
+                                    data=zip_buf.getvalue(), 
+                                    file_name="emails_bodies_separate.zip", 
+                                    mime="application/zip",
+                                    use_container_width=True
+                                )
 
                         else:
-                            # --- ORIGINAL LOGIC (ZIP FILES) ---
+                            # --- ORIGINAL LOGIC (ZIP FILES WITH HEADERS) ---
                             zip_buf = io.BytesIO()
                             with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
                                 for i, eid in enumerate(id_list):
@@ -370,14 +420,3 @@ with tab2:
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
-
-
-
-
-
-
-
-
-
-
-
