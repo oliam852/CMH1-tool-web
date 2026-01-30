@@ -237,14 +237,60 @@ with tab2:
                     if match: clean_folders.append(match.group(1))
                     else: clean_folders.append(folder_str)
 
+                # Get email counts for each folder
+                folder_counts = {}
+                for folder in clean_folders:
+                    try:
+                        mail.select(f'"{folder}"', readonly=True)
+                        typ, data = mail.search(None, 'ALL')
+                        if typ == 'OK':
+                            count = len(data[0].split()) if data[0] else 0
+                            folder_counts[folder] = count
+                    except:
+                        folder_counts[folder] = 0
+                
+                # Create folder display with counts
+                folder_options = [f"{folder} ({folder_counts.get(folder, 0)} emails)" for folder in clean_folders]
+                
                 # Select Folder
-                selected_folder = st.selectbox("📂 Select Folder", clean_folders, index=clean_folders.index("INBOX") if "INBOX" in clean_folders else 0)
+                selected_display = st.selectbox("📂 Select Folder", folder_options, 
+                    index=next((i for i, f in enumerate(clean_folders) if f == "INBOX"), 0))
+                
+                # Extract actual folder name
+                selected_folder = clean_folders[folder_options.index(selected_display)]
+                total_emails = folder_counts.get(selected_folder, 0)
                 
                 # ORIGINAL SETTINGS UI
                 with st.expander("⚙️ SETTINGS (RAW BODY PRESERVATION)", expanded=True):
+                    # Email Range Selection (NEW)
+                    st.info(f"📊 Total emails in folder: **{total_emails}**")
+                    
+                    col_range1, col_range2 = st.columns(2)
+                    with col_range1:
+                        start_from = st.number_input(
+                            "🔢 Start from email #:", 
+                            min_value=1, 
+                            max_value=max(1, total_emails), 
+                            value=1,
+                            help="Start downloading from this email number (1 = newest)"
+                        )
+                    with col_range2:
+                        download_count = st.number_input(
+                            "📥 How many to download:", 
+                            min_value=1, 
+                            max_value=total_emails, 
+                            value=min(10, total_emails),
+                            help="Number of emails to download starting from above number"
+                        )
+                    
+                    # Calculate actual range
+                    end_at = min(start_from + download_count - 1, total_emails)
+                    st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at - start_from + 1} emails)")
+                    
+                    st.markdown("---")
+                    
                     c1, c2 = st.columns(2)
                     with c1:
-                        max_results = st.number_input("1️⃣ Count? (10):", min_value=1, value=10)
                         rep_dom = st.checkbox("2️⃣ Change 'From' Domain")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                         
@@ -275,11 +321,13 @@ with tab2:
                     mail.select(f'"{selected_folder}"', readonly=True)
                     typ, data = mail.search(None, 'ALL')
                     id_list = data[0].split()
-                    id_list.reverse()
-                    id_list = id_list[:max_results]
+                    id_list.reverse()  # Newest first
+                    
+                    # Apply range selection
+                    id_list = id_list[start_from-1:start_from-1+download_count]
                     
                     if not id_list:
-                        st.error("📭 No emails found.")
+                        st.error("📭 No emails found in selected range.")
                     else:
                         status_msg = st.empty()
                         prog_bar = st.progress(0)
