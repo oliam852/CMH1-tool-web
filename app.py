@@ -591,7 +591,7 @@ with tab2:
 # ==========================================
 with tab3:
     # Load and display the CMH-1 Pro HTML file
-    cmh1_html_path = "/mnt/user-data/uploads/1770393039049_cmh1-pro.html"
+    cmh1_html_path = "cmh1-pro.html"
     
     if os.path.exists(cmh1_html_path):
         with open(cmh1_html_path, "r", encoding="utf-8") as f:
@@ -599,3 +599,4 @@ with tab3:
         components.html(cmh1_html_code, height=920, scrolling=True)
     else:
         st.error("⚠️ Fichier 'cmh1-pro.html' ma kaynch!")
+
