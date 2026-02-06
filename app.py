@@ -10,7 +10,7 @@ from email.header import decode_header
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(
-    page_title="CMH1 Fusion Pro", 
+    page_title="CMH1 Fusion", 
     page_icon="🚀", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -201,10 +201,7 @@ tab1, tab2, tab3 = st.tabs(["💻 HTML FUSION EDITOR", "📧 IMAP EMAIL TOOL", "
 # TAB 1: HTML FUSION EDITOR
 # ==========================================
 with tab1:
-    st.markdown("### 💻 HTML Fusion Editor")
-    st.markdown("---")
-    
-    v6_paths = ["V6.html", "/app/V6.html", "./V6.html", "app/V6.html"]
+    v6_paths = ["V6.html", "/app/V6.html", "./V6.html"]
     v6_found = False
     
     for path in v6_paths:
@@ -221,11 +218,6 @@ with tab1:
     if not v6_found:
         st.warning("⚠️ V6.html file not found!")
         st.info("📁 Please upload V6.html file to the application directory.")
-        
-        # Show current working directory for debugging
-        with st.expander("🔍 Debug Info"):
-            st.code(f"Current directory: {os.getcwd()}")
-            st.code(f"Files in current dir: {os.listdir('.')}")
 
 # ==========================================
 # TAB 2: IMAP EMAIL TOOL
@@ -253,18 +245,24 @@ with tab2:
         clean = re.sub(r'[^a-zA-Z0-9\s_\-\u00C0-\u017F]', '', decoded_subj) 
         return clean.strip().replace(' ', '_')[:60]
     
+    # Function to strip HTML manually (Regex) to be dependency-free
     def clean_html_to_plain(html_content):
+        # Basic regex to strip tags
         clean = re.sub(r'<[^>]+>', ' ', html_content)
+        # Collapse whitespace
         clean = re.sub(r'\s+', ' ', clean).strip()
         return clean
 
     def get_email_body_text(msg_obj):
+        """Extracts plain text body, preferring plain text over HTML."""
         body_text = ""
         if msg_obj.is_multipart():
+            # Walk through parts
             for part in msg_obj.walk():
                 ctype = part.get_content_type()
                 cdispo = str(part.get('Content-Disposition'))
                 
+                # Skip attachments
                 if 'attachment' in cdispo:
                     continue
                 
@@ -274,11 +272,12 @@ with tab2:
                     decoded_payload = payload.decode('utf-8', 'ignore')
                     
                     if ctype == 'text/plain':
-                        return decoded_payload
+                        return decoded_payload # Best case, return immediately
                     elif ctype == 'text/html':
-                        body_text = clean_html_to_plain(decoded_payload)
+                        body_text = clean_html_to_plain(decoded_payload) # Backup
                 except: continue
         else:
+            # Not multipart
             try:
                 payload = msg_obj.get_payload(decode=True)
                 if payload:
@@ -292,6 +291,7 @@ with tab2:
         return body_text
     
     def detect_duplicates(email_list):
+        """Detect duplicate emails based on Message-ID and Subject+From combination"""
         import hashlib
         
         seen_ids = set()
@@ -303,6 +303,7 @@ with tab2:
             msg_obj = email_data['msg']
             email_id = email_data['id']
             
+            # Check Message-ID
             msg_id = msg_obj.get('Message-ID', '')
             if msg_id and msg_id in seen_ids:
                 duplicates.append({
@@ -313,10 +314,12 @@ with tab2:
                 })
                 continue
             
+            # Check Subject + From + Date hash
             subject = msg_obj.get('Subject', '')
             from_addr = msg_obj.get('From', '')
             date = msg_obj.get('Date', '')
             
+            # Create hash
             combo = f"{subject}|{from_addr}|{date}".encode('utf-8')
             hash_val = hashlib.md5(combo).hexdigest()
             
@@ -329,6 +332,7 @@ with tab2:
                 })
                 continue
             
+            # Mark as seen
             if msg_id:
                 seen_ids.add(msg_id)
             seen_hashes.add(hash_val)
@@ -376,6 +380,7 @@ with tab2:
         if st.session_state.get('mail_connected'):
             mail = connect_imap(email_user, app_pass)
             if mail:
+                # --- PERFORMANCE: Cache folder list ---
                 cache_key = f"folders_{email_user}"
                 if cache_key not in st.session_state or st.session_state.get('refresh_folders'):
                     status, folders = mail.list()
@@ -391,12 +396,15 @@ with tab2:
                 else:
                     clean_folders = st.session_state[cache_key]
                 
+                # Refresh button for folders
                 if st.button("🔄 Refresh Folders", help="Update folder list"):
                     st.session_state['refresh_folders'] = True
                     st.rerun()
 
+                # Get email counts for each folder (WITH CACHING)
                 count_cache_key = f"counts_{email_user}_{selected_folder if 'selected_folder' in locals() else 'all'}"
                 
+                # Check if we need to refresh counts
                 if count_cache_key not in st.session_state or st.session_state.get('refresh_counts'):
                     folder_counts = {}
                     with st.spinner("📊 Counting emails..."):
@@ -414,15 +422,20 @@ with tab2:
                 else:
                     folder_counts = st.session_state[count_cache_key]
                 
+                # Create folder display with counts
                 folder_options = [f"{folder} ({folder_counts.get(folder, 0)} emails)" for folder in clean_folders]
                 
+                # Select Folder
                 selected_display = st.selectbox("📂 Select Folder", folder_options, 
                     index=next((i for i, f in enumerate(clean_folders) if f == "INBOX"), 0))
                 
+                # Extract actual folder name
                 selected_folder = clean_folders[folder_options.index(selected_display)]
                 total_emails = folder_counts.get(selected_folder, 0)
                 
+                # ORIGINAL SETTINGS UI
                 with st.expander("⚙️ SETTINGS (RAW BODY PRESERVATION)", expanded=True):
+                    # Email Range Selection (NEW)
                     st.info(f"📊 Total emails in folder: **{total_emails}**")
                     
                     col_range1, col_range2 = st.columns(2)
@@ -443,6 +456,7 @@ with tab2:
                             help="Number of emails to download starting from above number"
                         )
                     
+                    # Calculate actual range
                     end_at = min(start_from + download_count - 1, total_emails)
                     st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at - start_from + 1} emails)")
                     
@@ -453,10 +467,12 @@ with tab2:
                         rep_dom = st.checkbox("2️⃣ Change 'From' Domain")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                         
+                        # NEW OPTION HERE - UPDATED
                         st.markdown("---")
                         extract_plain_only = st.checkbox("8️⃣ Extract Body Only?", help="Extract only email body text without headers")
                         
-                        export_format = "Merged"
+                        # Export format selection - NEW FEATURE
+                        export_format = "Merged"  # Default value
                         if extract_plain_only:
                             export_format = st.radio(
                                 "📤 Export Format:",
@@ -470,6 +486,7 @@ with tab2:
                         clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers")
                         name_by_subj = st.checkbox("7️⃣ Name files by Subject")
                         
+                        # NEW: Duplicate Detection
                         st.markdown("---")
                         detect_dupes = st.checkbox("9️⃣ Remove Duplicates", help="Skip duplicate emails based on Message-ID and Subject+From+Date")
                     
@@ -481,8 +498,9 @@ with tab2:
                     mail.select(f'"{selected_folder}"', readonly=True)
                     typ, data = mail.search(None, 'ALL')
                     id_list = data[0].split()
-                    id_list.reverse()
+                    id_list.reverse()  # Newest first
                     
+                    # Apply range selection
                     id_list = id_list[start_from-1:start_from-1+download_count]
                     
                     if not id_list:
@@ -491,6 +509,7 @@ with tab2:
                         status_msg = st.empty()
                         prog_bar = st.progress(0)
                         
+                        # === DUPLICATE DETECTION (if enabled) ===
                         if detect_dupes:
                             status_msg.info("🔍 Detecting duplicates...")
                             email_data_list = []
@@ -508,19 +527,22 @@ with tab2:
                                 except:
                                     continue
                             
+                            # Detect and remove duplicates
                             unique_emails, duplicates = detect_duplicates(email_data_list)
                             
                             if duplicates:
                                 status_msg.warning(f"⚠️ Found {len(duplicates)} duplicate(s). Processing {len(unique_emails)} unique emails.")
                                 
+                                # Show duplicate details in expander
                                 with st.expander(f"📋 View {len(duplicates)} Duplicates"):
-                                    for dup in duplicates[:20]:
+                                    for dup in duplicates[:20]:  # Show first 20
                                         st.caption(f"Email #{dup['index']}: {dup['subject'][:50]} - {dup['reason']}")
                                     if len(duplicates) > 20:
                                         st.caption(f"... and {len(duplicates)-20} more")
                             else:
                                 status_msg.success("✅ No duplicates found!")
                             
+                            # Update id_list to only unique emails
                             id_list = [item['id'] for item in unique_emails]
                             
                             if not id_list:
@@ -528,8 +550,11 @@ with tab2:
                                 mail.logout()
                                 st.stop()
                         
+                        # === LOGIC BRANCH: EXTRACT TEXT ONLY vs ORIGINAL ===
                         if extract_plain_only:
+                            # Check which format user selected
                             if "Merged" in export_format:
+                                # --- OPTION: MERGED TEXT FILE ---
                                 full_extracted_text = []
                                 for i, eid in enumerate(id_list):
                                     try:
@@ -537,6 +562,7 @@ with tab2:
                                         raw_bytes = msg_data[0][1]
                                         email_message = email.message_from_bytes(raw_bytes)
                                         
+                                        # Get clean body
                                         body_content = get_email_body_text(email_message)
                                         
                                         if body_content:
@@ -545,6 +571,7 @@ with tab2:
                                         prog_bar.progress((i+1)/len(id_list))
                                     except: continue
                                     
+                                # Merge with Separator
                                 final_output = "\n__SEP__\n".join(full_extracted_text)
                                 
                                 prog_bar.empty()
@@ -558,6 +585,7 @@ with tab2:
                                 )
                             
                             else:
+                                # --- OPTION: SEPARATE FILES IN ZIP ---
                                 zip_buf = io.BytesIO()
                                 with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
                                     for i, eid in enumerate(id_list):
@@ -566,9 +594,11 @@ with tab2:
                                             raw_bytes = msg_data[0][1]
                                             email_message = email.message_from_bytes(raw_bytes)
                                             
+                                            # Get clean body
                                             body_content = get_email_body_text(email_message)
                                             
                                             if body_content:
+                                                # Create filename
                                                 if name_by_subj:
                                                     original_subj = email_message.get('Subject', 'no_subject')
                                                     subj = clean_filename(original_subj)
@@ -576,6 +606,7 @@ with tab2:
                                                 else:
                                                     fname = f"email_{i+1}.txt"
                                                 
+                                                # Write to zip
                                                 zf.writestr(fname, body_content.encode('utf-8'))
                                             
                                             prog_bar.progress((i+1)/len(id_list))
@@ -593,6 +624,7 @@ with tab2:
                                 )
 
                         else:
+                            # --- ORIGINAL LOGIC (ZIP FILES WITH HEADERS) ---
                             zip_buf = io.BytesIO()
                             with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
                                 for i, eid in enumerate(id_list):
@@ -600,6 +632,7 @@ with tab2:
                                         _, msg = mail.fetch(eid, '(RFC822)')
                                         raw = msg[0][1]
                                         
+                                        # Split Logic
                                         sep = b'\r\n\r\n'
                                         idx = raw.find(sep)
                                         if idx == -1: 
@@ -612,6 +645,7 @@ with tab2:
                                         mime = email.message_from_bytes(head)
                                         original_subj = mime.get('Subject', 'no_subject')
 
+                                        # LOGIC TRANSFORMATIONS
                                         if rep_dom and mime.get('From'):
                                             n_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime['From'])
                                             del mime['From']; mime['From'] = n_from
@@ -657,16 +691,12 @@ with tab2:
 # TAB 3: CMH-1 PRO (NEW)
 # ==========================================
 with tab3:
-    st.markdown("### ⚡ CMH-1 Pro - Email Headers Processor")
-    st.markdown("---")
-    
     # Try multiple possible paths for CMH-1 Pro HTML
     cmh1_paths = [
         "/mnt/user-data/uploads/1770393039049_cmh1-pro.html",
         "cmh1-pro.html",
         "/app/cmh1-pro.html",
-        "./cmh1-pro.html",
-        "app/cmh1-pro.html"
+        "./cmh1-pro.html"
     ]
     
     cmh1_found = False
@@ -685,12 +715,4 @@ with tab3:
     if not cmh1_found:
         st.warning("⚠️ CMH-1 Pro HTML file not found!")
         st.info("📁 Please upload cmh1-pro.html file to access this tool.")
-        
-        # Show debug info
-        with st.expander("🔍 Debug Info"):
-            st.code(f"Current directory: {os.getcwd()}")
-            st.code(f"Files in current dir: {os.listdir('.')}")
-            
-            # Check uploads directory
-            if os.path.exists('/mnt/user-data/uploads'):
-                st.code(f"Files in uploads: {os.listdir('/mnt/user-data/uploads')}")
+        st.caption("Expected path: `/mnt/user-data/uploads/1770393039049_cmh1-pro.html`")
