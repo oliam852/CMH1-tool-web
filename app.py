@@ -16,12 +16,37 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. CSS FOR CUSTOM TABS & CLEAN LOOK ---
+# --- 2. CSS FOR CUSTOM TABS & CLEAN LOOK (CMH-1 PRO THEME) ---
 st.markdown("""
 <style>
-    /* Global Background */
+    /* Import JetBrains Mono Font */
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+    
+    /* Global Background - CMH-1 Pro Style */
     .stApp {
-        background-color: #1a1b26;
+        background: #0a0e27;
+        font-family: 'JetBrains Mono', monospace;
+        position: relative;
+    }
+    
+    /* Animated Background Gradient */
+    .stApp::before {
+        content: '';
+        position: fixed;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+        animation: gradientMove 15s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    @keyframes gradientMove {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(-5%, -5%) rotate(5deg); }
     }
     
     /* 1. HIDE SIDEBAR COMPLETELY */
@@ -29,38 +54,46 @@ st.markdown("""
         display: none;
     }
     
-    /* 2. Custom Tabs Styling */
+    /* 2. Custom Tabs Styling - Purple/Blue Theme */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: #565F89;
-        padding: 10px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+        padding: 12px 24px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(168, 85, 247, 0.3);
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        backdrop-filter: blur(10px);
     }
 
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: transparent;
-        border-radius: 8px;
-        color: #919499;
+        height: 55px;
+        background: rgba(26, 31, 58, 0.6);
+        border-radius: 12px;
+        color: #94a3b8;
         font-weight: 600;
-        border: none;
-        padding: 0 20px;
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        padding: 0 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: 'JetBrains Mono', monospace;
     }
-    label {
-    color: #D3D6E4 !important;
-}
 
-    /* Selected Tab Style */
+    /* Selected Tab Style - Purple Glow */
     .stTabs [aria-selected="true"] {
-        background-color: #00f5c3 !important;
-        color: #1a1b26 !important;
+        background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%) !important;
+        color: #ffffff !important;
         font-weight: bold;
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.6), 
+                    0 0 60px rgba(59, 130, 246, 0.4);
+        border: 1px solid rgba(168, 85, 247, 0.5);
+        transform: translateY(-2px);
     }
     
     /* Hover Effect */
     .stTabs [data-baseweb="tab"]:hover {
-        color: #00f5c3;
+        color: #a855f7;
+        border-color: rgba(168, 85, 247, 0.5);
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+        transform: translateY(-1px);
     }
 
     /* Remove Decoration */
@@ -75,31 +108,88 @@ st.markdown("""
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 0rem !important;
+        position: relative;
+        z-index: 1;
     }
 
-    # ... (كود قديم)
-    /* Inputs Styling */
+    /* Inputs Styling - Dark Purple Theme */
     .stTextInput input, .stNumberInput input, .stTextArea textarea {
-        background-color: #24283b !important;
-        color: #c0caf5 !important;
-        border: 1px solid #414868 !important;
+        background-color: #121631 !important;
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(168, 85, 247, 0.3) !important;
+        border-radius: 8px !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput input:focus, .stNumberInput input:focus, .stTextArea textarea:focus {
+        border-color: #a855f7 !important;
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.3) !important;
     }
 
-    /* زيد هادو هنا باش يتحكمو فالعناوين (Labels) */
+    /* Labels Styling */
     [data-testid="stWidgetLabel"] p {
-        color: #c0caf5 !important;
+        color: #e2e8f0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-weight: 500;
     }
 
     .stMarkdown p {
-        color: #c0caf5 !important;
+        color: #e2e8f0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
     }
-# ... (باقي الكود)
     
-    /* Buttons */
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: #e2e8f0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+    
+    /* Buttons - Purple Gradient */
     .stButton button {
         font-weight: bold;
+        background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
     }
-
+    
+    .stButton button:hover {
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
+        transform: translateY(-2px);
+    }
+    
+    /* Selectbox Styling */
+    .stSelectbox > div > div {
+        background-color: #121631 !important;
+        border: 1px solid rgba(168, 85, 247, 0.3) !important;
+        color: #e2e8f0 !important;
+    }
+    
+    /* Checkbox Styling */
+    .stCheckbox > label {
+        color: #e2e8f0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+    
+    /* Info/Success/Warning Boxes */
+    .stAlert {
+        background: rgba(18, 22, 49, 0.8) !important;
+        border-left: 4px solid #a855f7 !important;
+        color: #e2e8f0 !important;
+        border-radius: 8px;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background: rgba(18, 22, 49, 0.6) !important;
+        border: 1px solid rgba(168, 85, 247, 0.2) !important;
+        border-radius: 8px;
+        color: #e2e8f0 !important;
+    }
     
 </style>
 """, unsafe_allow_html=True)
@@ -599,4 +689,3 @@ with tab3:
         components.html(cmh1_html_code, height=920, scrolling=True)
     else:
         st.error("⚠️ Fichier 'cmh1-pro.html' ma kaynch!")
-
