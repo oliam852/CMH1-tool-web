@@ -104,11 +104,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. NAVIGATION (TABS) ---
-tab1, tab2 = st.tabs(["💻 HTML FUSION EDITOR", "📧 IMAP EMAIL TOOL"])
+# --- 3. NAVIGATION (3 TABS NOW) ---
+tab1, tab2, tab3 = st.tabs(["💻 HTML FUSION EDITOR", "📧 IMAP EMAIL TOOL", "⚡ CMH-1 PRO"])
 
 # ==========================================
-# TAB 1: HTML EDITOR
+# TAB 1: HTML FUSION EDITOR
 # ==========================================
 with tab1:
     if os.path.exists("V6.html"):
@@ -119,7 +119,7 @@ with tab1:
         st.error("⚠️ Fichier 'V6.html' ma kaynch!")
 
 # ==========================================
-# TAB 2: IMAP TOOL (TEXT ORIGINAL)
+# TAB 2: IMAP EMAIL TOOL
 # ==========================================
 with tab2:
     # --- Helper Functions ---
@@ -585,3 +585,17 @@ with tab2:
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
                 mail.logout()
+
+# ==========================================
+# TAB 3: CMH-1 PRO (NEW)
+# ==========================================
+with tab3:
+    # Load and display the CMH-1 Pro HTML file
+    cmh1_html_path = "/mnt/user-data/uploads/1770393039049_cmh1-pro.html"
+    
+    if os.path.exists(cmh1_html_path):
+        with open(cmh1_html_path, "r", encoding="utf-8") as f:
+            cmh1_html_code = f.read()
+        components.html(cmh1_html_code, height=920, scrolling=True)
+    else:
+        st.error("⚠️ Fichier 'cmh1-pro.html' ma kaynch!")
