@@ -6,7 +6,40 @@ import email
 import imaplib
 import zipfile
 import io
+import json
+import base64
 from email.header import decode_header
+
+# ========== SESSION MANAGEMENT FUNCTIONS ==========
+def save_session(email, password):
+    """Save login session to file"""
+    try:
+        encoded = base64.b64encode(f"{email}|||{password}".encode()).decode()
+        with open('.email_session.dat', 'w') as f:
+            f.write(encoded)
+    except:
+        pass
+
+def load_session():
+    """Load saved session"""
+    try:
+        if os.path.exists('.email_session.dat'):
+            with open('.email_session.dat', 'r') as f:
+                encoded = f.read()
+            decoded = base64.b64decode(encoded).decode()
+            email, password = decoded.split('|||')
+            return {'email': email, 'password': password}
+    except:
+        pass
+    return None
+
+def clear_session():
+    """Clear saved session"""
+    try:
+        if os.path.exists('.email_session.dat'):
+            os.remove('.email_session.dat')
+    except:
+        pass
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(
@@ -254,29 +287,66 @@ with tab2:
     st.markdown("## 🚀 GMAIL/IMAP RAW TOOL")
     st.markdown("Developed by **@ayoubrhattoy**")
     
+    # ====== AUTO-LOAD SESSION ======
+    if 'mail_connected' not in st.session_state:
+        saved = load_session()
+        if saved:
+            mail = connect_imap(saved['email'], saved['password'])
+            if mail:
+                st.session_state['mail_connected'] = True
+                st.session_state['saved_email'] = saved['email']
+                st.session_state['saved_password'] = saved['password']
+                mail.logout()
+    
     col1, col2 = st.columns([1, 2], gap="large")
     
     with col1:
-        st.info("🔐 Login Credentials")
-        email_user = st.text_input("👉 Email:", placeholder="example@gmail.com")
-        app_pass = st.text_input("👉 App Password:", type="password")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        if st.button("🔌 Connect", use_container_width=True):
-            if email_user and app_pass:
-                mail = connect_imap(email_user, app_pass)
-                if mail:
-                    st.session_state['mail_connected'] = True
-                    st.success("✅ Connected!")
-                    mail.logout()
+        # ====== SHOW DISCONNECT IF CONNECTED ======
+        if st.session_state.get('mail_connected'):
+            st.success(f"✅ Connected: {st.session_state.get('saved_email', 'Unknown')}")
+            
+            if st.button("🔌 Disconnect", type="secondary", use_container_width=True):
+                st.session_state['mail_connected'] = False
+                clear_session()
+                if 'saved_email' in st.session_state:
+                    del st.session_state['saved_email']
+                if 'saved_password' in st.session_state:
+                    del st.session_state['saved_password']
+                # Clear all caches
+                for key in list(st.session_state.keys()):
+                    if key.startswith('folders_') or key.startswith('counts_'):
+                        del st.session_state[key]
+                st.rerun()
+        else:
+            # ====== LOGIN FORM ======
+            st.info("🔐 Login Credentials")
+            email_user = st.text_input("👉 Email:", placeholder="example@gmail.com")
+            app_pass = st.text_input("👉 App Password:", type="password")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if st.button("🔌 Connect", use_container_width=True):
+                if email_user and app_pass:
+                    mail = connect_imap(email_user, app_pass)
+                    if mail:
+                        st.session_state['mail_connected'] = True
+                        st.session_state['saved_email'] = email_user
+                        st.session_state['saved_password'] = app_pass
+                        save_session(email_user, app_pass)  # Save to file
+                        st.success("✅ Connected!")
+                        mail.logout()
+                        st.rerun()
+                    else:
+                        st.session_state['mail_connected'] = False
                 else:
-                    st.session_state['mail_connected'] = False
-            else:
-                st.warning("Please enter credentials.")
+                    st.warning("Please enter credentials.")
 
     with col2:
         if st.session_state.get('mail_connected'):
+            # Use saved credentials
+            email_user = st.session_state.get('saved_email')
+            app_pass = st.session_state.get('saved_password')
+            
             mail = connect_imap(email_user, app_pass)
             if mail:
                 # --- PERFORMANCE: Cache folder list ---
@@ -298,6 +368,7 @@ with tab2:
                 # Refresh button for folders
                 if st.button("🔄 Refresh Folders", help="Update folder list"):
                     st.session_state['refresh_folders'] = True
+                    st.session_state['refresh_counts'] = True
                     st.rerun()
 
                 # Get email counts for each folder (WITH CACHING)
@@ -354,7 +425,8 @@ with tab2:
                             value=min(10, max(1, total_emails)),
                             help="Number of emails to download starting from above number"
                         )
-                        # Calculate actual range
+                    
+                    # Calculate actual range
                     end_at = min(start_from + download_count - 1, total_emails)
                     if total_emails > 0:
                         st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at - start_from + 1} emails)")
@@ -586,6 +658,10 @@ with tab2:
                             prog_bar.empty()
                             status_msg.success("🎉 Download Complete!")
                             st.download_button("📥 Download ZIP File", zip_buf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
+                        
+                        # ====== REFRESH COUNTS AFTER DOWNLOAD ======
+                        st.session_state['refresh_counts'] = True
+                        
                 mail.logout()
 
 # ==========================================
@@ -601,8 +677,3 @@ with tab3:
         components.html(cmh1_html_code, height=920, scrolling=True)
     else:
         st.error("⚠️ Fichier 'cmh1-pro.html' ma kaynch!")
-
-
-
-
-
