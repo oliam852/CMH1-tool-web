@@ -355,9 +355,12 @@ with tab2:
         help="Number of emails to download starting from above number"
     )
                     
-                    # Calculate actual range
-                    end_at = min(start_from + download_count - 1, total_emails)
-                    st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at - start_from + 1} emails)")
+                   # Calculate actual range
+end_at = min(start_from + download_count - 1, total_emails)
+if total_emails > 0:
+    st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at - start_from + 1} emails)")
+else:
+    st.caption("⚠️ No emails available in this folder")
                     
                     st.markdown("---")
                     
@@ -599,4 +602,5 @@ with tab3:
         components.html(cmh1_html_code, height=920, scrolling=True)
     else:
         st.error("⚠️ Fichier 'cmh1-pro.html' ma kaynch!")
+
 
