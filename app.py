@@ -346,14 +346,14 @@ with tab2:
                             value=1,
                             help="Start downloading from this email number (1 = newest)"
                         )
-                    with col_range2:
-                        download_count = st.number_input(
-                            "📥 How many to download:", 
-                            min_value=1, 
-                            max_value=total_emails, 
-                            value=min(10, total_emails),
-                            help="Number of emails to download starting from above number"
-                        )
+                  with col_range2:
+    download_count = st.number_input(
+        "📥 How many to download:", 
+        min_value=1, 
+        max_value=max(1, total_emails), 
+        value=min(10, max(1, total_emails)),
+        help="Number of emails to download starting from above number"
+    )
                     
                     # Calculate actual range
                     end_at = min(start_from + download_count - 1, total_emails)
@@ -599,3 +599,4 @@ with tab3:
         components.html(cmh1_html_code, height=920, scrolling=True)
     else:
         st.error("⚠️ Fichier 'cmh1-pro.html' ma kaynch!")
+
