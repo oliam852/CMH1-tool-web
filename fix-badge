@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMH-1 Pro - Ultimate Email Headers Processor (FIXED)</title>
+    <title>CMH-1 Pro - Ultimate Email Headers Processor </title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -741,7 +741,7 @@
 
         .fix-badge {
             background: var(--success);
-            color: black !importent;
+            color: black;
             padding: 0.3rem 0.8rem;
             border-radius: 20px;
             font-size: 0.7rem;
