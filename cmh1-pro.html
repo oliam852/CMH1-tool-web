@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CMH-1 Pro - Ultimate Email Headers Processor (FIXED)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --bg-primary: #1a1b26;
@@ -893,7 +894,9 @@
             <div class="input-group">
                 <label>Export Format</label>
                 <select id="exportFormat">
-                    <option value="txt">Text (.txt)</option>
+                    <option value="txt">Single File (.txt)</option>
+                    <option value="sep">Merged with __SEP__ (.txt)</option>
+                    <option value="zip">Separate Files (.zip)</option>
                     <option value="json">JSON (.json)</option>
                     <option value="csv">CSV (.csv)</option>
                 </select>
@@ -943,6 +946,7 @@
         // Global State
         let uploadedFiles = [];
         let uploadedFilesContent = []; // ✅ NEW: Store file contents
+        let processedFilesData = []; // ✅ NEW: Store individually processed files for ZIP
         let processedCount = 0;
         let totalProcessingTime = 0;
         let originalHeaders = '';
@@ -1088,12 +1092,21 @@
                 return;
             }
 
+            // Reset processed files data
+            processedFilesData = [];
+
             // ✅ NEW: Process uploaded files if available
             if (uploadedFilesContent.length > 0) {
                 let allProcessed = [];
                 for (let fileData of uploadedFilesContent) {
                     const processed = processHeadersText(fileData.content);
                     allProcessed.push(`\n=== ${fileData.name} ===\n${processed}`);
+                    
+                    // Store individual processed file
+                    processedFilesData.push({
+                        name: fileData.name,
+                        content: processed
+                    });
                 }
                 processedHeaders = allProcessed.join('\n\n');
                 document.getElementById('outputHeaders').value = processedHeaders;
@@ -1102,6 +1115,12 @@
                 originalHeaders = input;
                 processedHeaders = processHeadersText(input);
                 document.getElementById('outputHeaders').value = processedHeaders;
+                
+                // Store as single file
+                processedFilesData.push({
+                    name: 'processed_headers.txt',
+                    content: processedHeaders
+                });
             }
             
             // Update stats
@@ -1271,7 +1290,7 @@
         }
 
         // Download Output
-        function downloadOutput() {
+        async function downloadOutput() {
             const output = document.getElementById('outputHeaders').value;
             if (!output) {
                 showNotification('Nothing to download!', 'warning');
@@ -1279,34 +1298,127 @@
             }
             
             const format = document.getElementById('exportFormat').value;
-            let content, filename, mimeType;
             
-            switch(format) {
-                case 'json':
-                    content = JSON.stringify({ headers: output.split('\n') }, null, 2);
-                    filename = 'headers.json';
-                    mimeType = 'application/json';
-                    break;
-                case 'csv':
-                    content = 'Header\n' + output.split('\n').map(line => `"${line}"`).join('\n');
-                    filename = 'headers.csv';
-                    mimeType = 'text/csv';
-                    break;
-                default:
-                    content = output;
-                    filename = 'headers.txt';
-                    mimeType = 'text/plain';
+            // Handle different formats
+            if (format === 'sep') {
+                downloadWithSeparator();
+            } else if (format === 'zip') {
+                await downloadAsZip();
+            } else if (format === 'json') {
+                downloadAsJson();
+            } else if (format === 'csv') {
+                downloadAsCsv();
+            } else {
+                downloadAsTxt();
             }
-            
-            const blob = new Blob([content], { type: mimeType });
+        }
+
+        // Download as single TXT file
+        function downloadAsTxt() {
+            const output = document.getElementById('outputHeaders').value;
+            const blob = new Blob([output], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename;
+            a.download = 'headers.txt';
             a.click();
             URL.revokeObjectURL(url);
-            
             showNotification('Download started! 📥', 'success');
+        }
+
+        // Download merged with __SEP__ separator
+        function downloadWithSeparator() {
+            if (processedFilesData.length === 0) {
+                showNotification('No processed data available!', 'warning');
+                return;
+            }
+
+            let mergedContent = [];
+            for (let i = 0; i < processedFilesData.length; i++) {
+                mergedContent.push(processedFilesData[i].content);
+            }
+            
+            // Join with __SEP__
+            const content = mergedContent.join('\n__SEP__\n');
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'headers_merged_sep.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('Downloaded merged file with __SEP__! 📥', 'success');
+        }
+
+        // Download as ZIP with separate files
+        async function downloadAsZip() {
+            if (typeof JSZip === 'undefined') {
+                showNotification('JSZip library not loaded! Please refresh the page.', 'error');
+                return;
+            }
+
+            if (processedFilesData.length === 0) {
+                showNotification('No processed data available!', 'warning');
+                return;
+            }
+
+            try {
+                const zip = new JSZip();
+                
+                // Add each file to ZIP
+                for (let fileData of processedFilesData) {
+                    // Clean filename and add .txt extension if needed
+                    let filename = fileData.name;
+                    if (!filename.endsWith('.txt') && !filename.endsWith('.eml')) {
+                        filename = filename.replace(/\.[^/.]+$/, '') + '.txt';
+                    }
+                    
+                    zip.file(filename, fileData.content);
+                }
+                
+                // Generate ZIP file
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'processed_headers.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification(`Downloaded ZIP with ${processedFilesData.length} file(s)! 📦`, 'success');
+            } catch (error) {
+                console.error('Error creating ZIP:', error);
+                showNotification('Error creating ZIP file!', 'error');
+            }
+        }
+
+        // Download as JSON
+        function downloadAsJson() {
+            const output = document.getElementById('outputHeaders').value;
+            const content = JSON.stringify({ headers: output.split('\n') }, null, 2);
+            const blob = new Blob([content], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'headers.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('Downloaded JSON! 📥', 'success');
+        }
+
+        // Download as CSV
+        function downloadAsCsv() {
+            const output = document.getElementById('outputHeaders').value;
+            const content = 'Header\n' + output.split('\n').map(line => `"${line}"`).join('\n');
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'headers.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('Downloaded CSV! 📥', 'success');
         }
 
         // Copy to Clipboard
@@ -1345,6 +1457,7 @@
             document.getElementById('outputHeaders').value = '';
             uploadedFiles = [];
             uploadedFilesContent = [];
+            processedFilesData = [];
             updateFileList();
             originalHeaders = '';
             processedHeaders = '';
