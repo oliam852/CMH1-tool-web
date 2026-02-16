@@ -741,7 +741,7 @@
 
         .fix-badge {
             background: var(--success);
-            color: black;
+            color: black !importent;
             padding: 0.3rem 0.8rem;
             border-radius: 20px;
             font-size: 0.7rem;
