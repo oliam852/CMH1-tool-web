@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMH-1 Pro - Ultimate Email Headers Processor</title>
+    <title>CMH-1 Pro - Ultimate Email Headers Processor (FIXED)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -721,7 +721,6 @@
             display: none !important;
         }
 
-        /* Scrollbar Styling */
         ::-webkit-scrollbar {
             width: 10px;
         }
@@ -738,10 +737,20 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--accent-purple);
         }
+
+        .fix-badge {
+            background: var(--success);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body data-theme="dark">
-    <!-- Theme Toggle -->
     <div class="theme-toggle" onclick="toggleTheme()">
         <svg id="themeIcon" viewBox="0 0 24 24">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
@@ -750,16 +759,14 @@
     </div>
 
     <div class="container">
-        <!-- Header -->
         <header>
             <div class="logo-container">
                 <div class="logo">C1</div>
             </div>
-            <h1>CMH-1 PRO</h1>
+            <h1>CMH-1 PRO <span class="fix-badge">✓ FIXED</span></h1>
             <p class="subtitle">Ultimate Email Headers Processing Tool</p>
         </header>
 
-        <!-- Real-time Stats -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="totalProcessed">0</div>
@@ -779,28 +786,22 @@
             </div>
         </div>
 
-        <!-- Main Grid -->
         <div class="main-grid">
-            <!-- Input Section -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-icon">📥</div>
                     <h2 class="card-title">Input Headers</h2>
                 </div>
 
-                <!-- Tab Navigation -->
                 <div class="tab-container">
                     <button class="tab active" onclick="switchTab('paste')">Paste</button>
                     <button class="tab" onclick="switchTab('upload')">Upload</button>
-                    <button class="tab" onclick="switchTab('bulk')">Bulk</button>
                 </div>
 
-                <!-- Paste Tab -->
                 <div id="paste-tab" class="tab-content active">
                     <textarea id="inputHeaders" placeholder="Paste email headers here..."></textarea>
                 </div>
 
-                <!-- Upload Tab -->
                 <div id="upload-tab" class="tab-content">
                     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
                         <div class="drop-zone-icon">📄</div>
@@ -810,25 +811,8 @@
                     <input type="file" id="fileInput" accept=".eml,.txt,.msg" multiple style="display: none;">
                     <div class="file-list" id="fileList"></div>
                 </div>
-
-                <!-- Bulk Tab -->
-                <div id="bulk-tab" class="tab-content">
-                    <div class="drop-zone" onclick="document.getElementById('bulkInput').click()">
-                        <div class="drop-zone-icon">📦</div>
-                        <h3>Upload Multiple Files</h3>
-                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">CSV or ZIP containing email files</p>
-                    </div>
-                    <input type="file" id="bulkInput" accept=".csv,.zip" style="display: none;">
-                    <div id="bulkProgress" class="hidden">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="bulkProgressFill" style="width: 0%"></div>
-                        </div>
-                        <p style="text-align: center; color: var(--text-secondary);" id="bulkStatus">Processing...</p>
-                    </div>
-                </div>
             </div>
 
-            <!-- Processing Options -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-icon">⚙️</div>
@@ -851,9 +835,9 @@
                 </div>
 
                 <div class="checkbox-group">
-				 <div class="checkbox-item">
+                    <div class="checkbox-item">
                         <input type="checkbox" id="extractBodyCheckbox" checked>
-                        <label class="checkbox-label" for="extractBodyCheckbox">Extract Header + Body </label>
+                        <label class="checkbox-label" for="extractBodyCheckbox">Extract Header + Body</label>
                     </div>
                     <div class="checkbox-item">
                         <input type="checkbox" id="replaceDateCheckbox" checked>
@@ -875,7 +859,6 @@
                         <input type="checkbox" id="addCcCheckbox" checked>
                         <label class="checkbox-label" for="addCcCheckbox">Add "Cc: [*to]" if missing</label>
                     </div>
-                  
                     <div class="checkbox-item">
                         <input type="checkbox" id="removeDuplicatesCheckbox">
                         <label class="checkbox-label" for="removeDuplicatesCheckbox">Remove Duplicates</label>
@@ -886,7 +869,7 @@
                     </div>
                     <div class="checkbox-item" style="border: 2px solid var(--danger);">
                         <input type="checkbox" id="removeSecurityHeadersCheckbox" checked>
-                        <label class="checkbox-label" for="removeSecurityHeadersCheckbox">🗑️ Remove Security Headers (DKIM, SPF, ARC, Return-Path)</label>
+                        <label class="checkbox-label" for="removeSecurityHeadersCheckbox">🗑️ Remove Security Headers</label>
                     </div>
                 </div>
 
@@ -901,41 +884,6 @@
             </div>
         </div>
 
-        <!-- Regex Builder Section -->
-        <div class="card" style="animation-delay: 0.5s;">
-            <div class="card-header">
-                <div class="card-icon">🔧</div>
-                <h2 class="card-title">Regex Builder</h2>
-            </div>
-            <div class="regex-builder">
-                <div class="input-group">
-                    <label>Build Custom Regex Pattern</label>
-                    <select id="regexType" onchange="updateRegexPattern()">
-                        <option value="">Select Pattern Type</option>
-                        <option value="email">Email Address</option>
-                        <option value="domain">Domain Name</option>
-                        <option value="ip">IP Address</option>
-                        <option value="date">Date/Time</option>
-                        <option value="custom">Custom Pattern</option>
-                    </select>
-                </div>
-                <div class="input-group" id="customRegexGroup" style="display: none;">
-                    <label>Custom Pattern</label>
-                    <input type="text" id="customRegex" placeholder="Enter regex pattern">
-                </div>
-                <div class="regex-pattern" id="regexDisplay">Select a pattern type to begin</div>
-                <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="testRegex()">
-                        <span style="position: relative; z-index: 1;">🧪 Test Pattern</span>
-                    </button>
-                    <button class="btn btn-secondary" onclick="applyRegex()">
-                        <span style="position: relative; z-index: 1;">✅ Apply Pattern</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Output Section -->
         <div class="card" style="animation-delay: 0.6s;">
             <div class="card-header">
                 <div class="card-icon">📤</div>
@@ -948,8 +896,6 @@
                     <option value="txt">Text (.txt)</option>
                     <option value="json">JSON (.json)</option>
                     <option value="csv">CSV (.csv)</option>
-                    <option value="sep">Merged (SEP)</option>
-                    <option value="zip">Separated (ZIP)</option>
                 </select>
             </div>
 
@@ -968,7 +914,6 @@
             </div>
         </div>
 
-        <!-- Comparison View -->
         <div id="comparisonSection" class="hidden">
             <div class="card" style="animation-delay: 0.7s;">
                 <div class="card-header">
@@ -988,16 +933,16 @@
             </div>
         </div>
 
-        <!-- Footer -->
         <footer class="footer">
             <p>Built with 💜 by <a href="https://t.me/ayoubrhattoy" target="_blank">@ayoubrhattoy</a></p>
-            <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">CMH-1 Pro v1.0 | Ultimate Email Headers Processor</p>
+            <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">CMH-1 Pro v2.0 FIXED | Ultimate Email Headers Processor</p>
         </footer>
     </div>
 
     <script>
         // Global State
         let uploadedFiles = [];
+        let uploadedFilesContent = []; // ✅ NEW: Store file contents
         let processedCount = 0;
         let totalProcessingTime = 0;
         let originalHeaders = '';
@@ -1066,11 +1011,38 @@
             handleFiles(e.target.files);
         });
 
-        function handleFiles(files) {
+        // ✅ FIXED: Now reads file contents
+        async function handleFiles(files) {
             uploadedFiles = Array.from(files);
+            uploadedFilesContent = [];
+            
+            for (let file of uploadedFiles) {
+                try {
+                    const content = await readFileContent(file);
+                    uploadedFilesContent.push({
+                        name: file.name,
+                        content: content,
+                        size: file.size
+                    });
+                } catch (error) {
+                    console.error('Error reading file:', file.name, error);
+                    showNotification(`Error reading ${file.name}`, 'error');
+                }
+            }
+            
             updateFileList();
             updateStats();
-            showNotification('Files loaded successfully!', 'success');
+            showNotification(`${uploadedFiles.length} file(s) loaded successfully!`, 'success');
+        }
+
+        // ✅ NEW: Function to read file content
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
         }
 
         function updateFileList() {
@@ -1094,6 +1066,7 @@
 
         function removeFile(index) {
             uploadedFiles.splice(index, 1);
+            uploadedFilesContent.splice(index, 1);
             updateFileList();
             updateStats();
         }
@@ -1104,82 +1077,45 @@
             return (bytes / 1048576).toFixed(1) + ' MB';
         }
 
-        // Regex Builder
-        const regexPatterns = {
-            email: /[\w\.-]+@[\w\.-]+\.\w+/g,
-            domain: /(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]/gi,
-            ip: /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
-            date: /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}/g
-        };
-
-        function updateRegexPattern() {
-            const regexType = document.getElementById('regexType').value;
-            const regexDisplay = document.getElementById('regexDisplay');
-            const customGroup = document.getElementById('customRegexGroup');
-            
-            if (regexType === 'custom') {
-                customGroup.style.display = 'block';
-                regexDisplay.textContent = 'Enter your custom pattern above';
-            } else {
-                customGroup.style.display = 'none';
-                if (regexType) {
-                    regexDisplay.textContent = regexPatterns[regexType].toString();
-                } else {
-                    regexDisplay.textContent = 'Select a pattern type to begin';
-                }
-            }
-        }
-
-        function testRegex() {
-            const regexType = document.getElementById('regexType').value;
-            const input = document.getElementById('inputHeaders').value;
-            
-            if (!input) {
-                showNotification('Please add input headers first!', 'warning');
-                return;
-            }
-            
-            let pattern;
-            if (regexType === 'custom') {
-                const customRegex = document.getElementById('customRegex').value;
-                if (!customRegex) {
-                    showNotification('Please enter a custom regex pattern!', 'warning');
-                    return;
-                }
-                try {
-                    pattern = new RegExp(customRegex, 'g');
-                } catch (e) {
-                    showNotification('Invalid regex pattern!', 'error');
-                    return;
-                }
-            } else {
-                pattern = regexPatterns[regexType];
-            }
-            
-            const matches = input.match(pattern);
-            if (matches) {
-                showNotification(`Found ${matches.length} matches!`, 'success');
-                console.log('Matches:', matches);
-            } else {
-                showNotification('No matches found!', 'warning');
-            }
-        }
-
-        function applyRegex() {
-            showNotification('Regex pattern applied!', 'success');
-        }
-
-        // Process Headers
-        function processHeaders() {
+        // ✅ FIXED: Process Headers now handles uploaded files
+        async function processHeaders() {
             const startTime = performance.now();
             let input = document.getElementById('inputHeaders').value;
             
-            if (!input && uploadedFiles.length === 0) {
+            // ✅ NEW: Check for uploaded files
+            if (!input && uploadedFilesContent.length === 0) {
                 showNotification('Please add headers or upload files!', 'warning');
                 return;
             }
+
+            // ✅ NEW: Process uploaded files if available
+            if (uploadedFilesContent.length > 0) {
+                let allProcessed = [];
+                for (let fileData of uploadedFilesContent) {
+                    const processed = processHeadersText(fileData.content);
+                    allProcessed.push(`\n=== ${fileData.name} ===\n${processed}`);
+                }
+                processedHeaders = allProcessed.join('\n\n');
+                document.getElementById('outputHeaders').value = processedHeaders;
+            } else {
+                // Process textarea input
+                originalHeaders = input;
+                processedHeaders = processHeadersText(input);
+                document.getElementById('outputHeaders').value = processedHeaders;
+            }
             
-            originalHeaders = input;
+            // Update stats
+            const endTime = performance.now();
+            const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+            processedCount++;
+            totalProcessingTime += parseFloat(processingTime);
+            updateStats();
+            
+            showNotification('Headers processed successfully! 🎉', 'success');
+        }
+
+        // ✅ NEW: Separate function for processing header text
+        function processHeadersText(input) {
             let lines = input.split('\n');
             
             // Get processing options
@@ -1203,9 +1139,7 @@
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
                 
-                // Check if we've entered body section
                 if (bodyStartIndex === -1) {
-                    // Check if this is a new header (starts with letter followed by colon)
                     if (line.match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
                         if (currentHeader) {
                             headers.push(currentHeader);
@@ -1216,26 +1150,21 @@
                             fullLine: line 
                         };
                     } else if (currentHeader && line.match(/^\s+/)) {
-                        // Continuation line (starts with whitespace)
                         currentHeader.fullLine += '\n' + line;
                     } else if (line.trim() === '') {
-                        // Empty line - might be end of headers
                         if (currentHeader) {
                             headers.push(currentHeader);
                             currentHeader = null;
                         }
-                        // Check if next line is body (not a header)
                         if (i + 1 < lines.length && !lines[i + 1].match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
                             bodyStartIndex = i + 1;
                         }
                     }
                 } else {
-                    // We're in the body section
                     bodyContent += line + '\n';
                 }
             }
             
-            // Don't forget last header if no body
             if (currentHeader && bodyStartIndex === -1) {
                 headers.push(currentHeader);
             }
@@ -1253,7 +1182,6 @@
             for (let header of headers) {
                 let line = header.fullLine;
                 
-                // Skip security headers if enabled
                 if (removeSecurityHeaders) {
                     if (securityHeaderNames.includes(header.name) || 
                         header.name.startsWith('ARC-') || 
@@ -1261,13 +1189,11 @@
                         continue;
                     }
                     
-                    // Clean continuation lines with security data
                     line = line.replace(/^\s+(dkim|spf|dmarc|bh|fh|[bg]|[hb]|dara|d=google\.com).*$/gm, '');
                     line = line.replace(/^\s+[a-zA-Z0-9+/=]{40,}.*$/gm, '');
                     line = line.trim().split('\n').filter(l => l.trim()).join('\n');
                 }
                 
-                // Categorize
                 if (header.name === 'Received') {
                     if (keepReceived) {
                         receivedHeaders.push(line);
@@ -1279,7 +1205,6 @@
                         otherHeaders.push(line);
                     }
                 } else {
-                    // Process specific headers
                     if (header.name === 'From') {
                         if (domainReplacement) {
                             line = line.replace(/^(From:\s*.+?)@[\w\.-]+\.\w+/m, `$1@${domainReplacement}`);
@@ -1304,28 +1229,22 @@
                 }
             }
             
-            // Build final output in correct order
+            // Build final output
             let result = [];
-            
-            // 1. Received headers first
             result = result.concat(receivedHeaders);
             
-            // 2. Sender after Received
             if (senderHeader) {
                 result.push(senderHeader);
             }
             
-            // 3. Custom headers after Received/Sender
             if (customHeaders) {
                 customHeaders.split('\n')
                     .filter(line => line.trim())
                     .forEach(line => result.push(line));
             }
             
-            // 4. All other headers
             result = result.concat(otherHeaders);
             
-            // 5. Add Cc if needed
             if (addCc && !result.some(line => line.startsWith('Cc:'))) {
                 const subjectIndex = result.findIndex(line => line.startsWith('Subject:'));
                 if (subjectIndex !== -1) {
@@ -1333,31 +1252,19 @@
                 }
             }
             
-            // Join headers with single newlines
             let processed = result.join('\n').trim();
             
-            // Add body if extract body is enabled and body exists
             if (extractBody && bodyContent.trim()) {
                 processed += '\n\n' + bodyContent.trim();
             }
             
-            processedHeaders = processed;
-            document.getElementById('outputHeaders').value = processed;
-            
-            // Update stats
-            const endTime = performance.now();
-            const processingTime = ((endTime - startTime) / 1000).toFixed(2);
-            processedCount++;
-            totalProcessingTime += parseFloat(processingTime);
-            updateStats();
-            
-            showNotification('Headers processed successfully! 🎉', 'success');
+            return processed;
         }
 
         // Update Stats
         function updateStats() {
             document.getElementById('totalProcessed').textContent = processedCount;
-            document.getElementById('totalFiles').textContent = uploadedFiles.length;
+            document.getElementById('totalFiles').textContent = uploadedFilesContent.length;
             
             const avgTime = processedCount > 0 ? (totalProcessingTime / processedCount).toFixed(2) : 0;
             document.getElementById('processingTime').textContent = avgTime + 's';
@@ -1417,16 +1324,18 @@
 
         // Show Comparison
         function showComparison() {
-            if (!originalHeaders || !processedHeaders) {
+            const input = document.getElementById('inputHeaders').value;
+            const output = document.getElementById('outputHeaders').value;
+            
+            if (!output) {
                 showNotification('Process headers first to compare!', 'warning');
                 return;
             }
             
             document.getElementById('comparisonSection').classList.remove('hidden');
-            document.getElementById('comparisonBefore').textContent = originalHeaders;
-            document.getElementById('comparisonAfter').textContent = processedHeaders;
+            document.getElementById('comparisonBefore').textContent = input || 'Uploaded files';
+            document.getElementById('comparisonAfter').textContent = output;
             
-            // Scroll to comparison
             document.getElementById('comparisonSection').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -1435,6 +1344,7 @@
             document.getElementById('inputHeaders').value = '';
             document.getElementById('outputHeaders').value = '';
             uploadedFiles = [];
+            uploadedFilesContent = [];
             updateFileList();
             originalHeaders = '';
             processedHeaders = '';
@@ -1461,7 +1371,7 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            showNotification('CMH-1 Pro loaded successfully! 🚀', 'success');
+            showNotification('CMH-1 Pro FIXED loaded successfully! 🚀', 'success');
         });
     </script>
 </body>
