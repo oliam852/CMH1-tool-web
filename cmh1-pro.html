@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMH-1 Pro - Ultimate Email Headers Processor </title>
+    <title>CMH-1 Pro - Ultimate Email Headers Processor (FIXED)</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --bg-primary: #1a1b26;
@@ -61,16 +60,17 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
-            animation: gradientMove 15s ease-in-out infinite;
+            background: radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+            animation: gradientMove 20s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
+            will-change: transform;
         }
 
         @keyframes gradientMove {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            50% { transform: translate(-5%, -5%) rotate(5deg); }
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-3%, -3%); }
         }
 
         .container {
@@ -84,13 +84,13 @@
         header {
             text-align: center;
             margin-bottom: 3rem;
-            animation: slideDown 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            animation: slideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         @keyframes slideDown {
             from {
                 opacity: 0;
-                transform: translateY(-30px);
+                transform: translateY(-20px);
             }
             to {
                 opacity: 1;
@@ -131,18 +131,19 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
-            animation: shine 3s infinite;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
+            animation: shine 4s infinite;
+            will-change: transform;
         }
 
         @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            0% { transform: translateX(-100%) translateY(-100%); }
+            100% { transform: translateX(100%) translateY(100%); }
         }
 
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.03); }
         }
 
         h1 {
@@ -212,7 +213,8 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            animation: fadeIn 0.8s ease-out backwards;
+            animation: fadeIn 0.6s ease-out backwards;
+            will-change: transform;
         }
 
         .card::before {
@@ -242,10 +244,10 @@
             }
         }
 
-        .card:nth-child(1) { animation-delay: 0.1s; }
-        .card:nth-child(2) { animation-delay: 0.2s; }
-        .card:nth-child(3) { animation-delay: 0.3s; }
-        .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(1) { animation-delay: 0.05s; }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.15s; }
+        .card:nth-child(4) { animation-delay: 0.2s; }
 
         .card-header {
             display: flex;
@@ -741,7 +743,7 @@
 
         .fix-badge {
             background: var(--success);
-            color: black;
+            color: white;
             padding: 0.3rem 0.8rem;
             border-radius: 20px;
             font-size: 0.7rem;
@@ -764,7 +766,7 @@
             <div class="logo-container">
                 <div class="logo">C1</div>
             </div>
-            <h1>CMH-1 Tool </h1>
+            <h1>CMH-1 PRO <span class="fix-badge">✓ FIXED</span></h1>
             <p class="subtitle">Ultimate Email Headers Processing Tool</p>
         </header>
 
@@ -951,6 +953,26 @@
         let totalProcessingTime = 0;
         let originalHeaders = '';
         let processedHeaders = '';
+        let jsZipLoaded = false; // Track JSZip loading state
+
+        // ✅ Lazy load JSZip only when needed
+        function loadJSZip() {
+            return new Promise((resolve, reject) => {
+                if (jsZipLoaded && typeof JSZip !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = () => {
+                    jsZipLoaded = true;
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('Failed to load JSZip'));
+                document.head.appendChild(script);
+            });
+        }
 
         // Theme Toggle
         function toggleTheme() {
@@ -1353,17 +1375,18 @@
 
         // Download as ZIP with separate files
         async function downloadAsZip() {
-            if (typeof JSZip === 'undefined') {
-                showNotification('JSZip library not loaded! Please refresh the page.', 'error');
-                return;
-            }
-
             if (processedFilesData.length === 0) {
                 showNotification('No processed data available!', 'warning');
                 return;
             }
 
             try {
+                // ✅ Load JSZip only when needed
+                if (!jsZipLoaded) {
+                    showNotification('Loading ZIP library... ⏳', 'warning');
+                    await loadJSZip();
+                }
+
                 const zip = new JSZip();
                 
                 // Add each file to ZIP
@@ -1484,7 +1507,8 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            showNotification('CMH-1 Pro FIXED loaded successfully! 🚀', 'success');
+            // Page loaded - ready to use
+            console.log('CMH-1 Pro loaded successfully! 🚀');
         });
     </script>
 </body>
