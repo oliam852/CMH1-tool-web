@@ -10,98 +10,41 @@ import base64
 from email.header import decode_header
 
 # ==========================================
-# COOKIE SESSION - JavaScript Bridge
+# ⚠️ COOKIES - يخص يكون قبل أي st. call
 # ==========================================
-def set_cookie_js(name, value, days=30):
-    """يكتب Cookie في المتصفح مباشرة عبر JavaScript"""
-    components.html(f"""
-    <script>
-        var d = new Date();
-        d.setTime(d.getTime() + ({days} * 24 * 60 * 60 * 1000));
-        document.cookie = "{name}=" + encodeURIComponent("{value}") + ";expires=" + d.toUTCString() + ";path=/;SameSite=Strict";
-    </script>
-    """, height=0)
+from streamlit_cookies_controller import CookieController
+controller = CookieController()
 
-def delete_cookie_js(name):
-    """يمسح Cookie من المتصفح"""
-    components.html(f"""
-    <script>
-        document.cookie = "{name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
-    </script>
-    """, height=0)
-
-def get_cookie_via_input(name):
-    """
-    يقرأ Cookie من المتصفح عبر hidden input trick.
-    يرجع القيمة إذا موجودة في session_state.
-    """
-    key = f"__cookie__{name}"
-    if key not in st.session_state:
-        st.session_state[key] = None
-        # نحقن JS يقرأ الـ cookie ويحطها في URL param
-        components.html(f"""
-        <script>
-            function getCookie(name) {{
-                var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-                return match ? decodeURIComponent(match[2]) : null;
-            }}
-            var val = getCookie("{name}");
-            if (val) {{
-                // نحطوها في sessionStorage باش تبقى
-                window.parent.postMessage({{type: 'cookie_val', name: '{name}', value: val}}, '*');
-            }}
-        </script>
-        """, height=0)
-    return st.session_state.get(key)
-
-# ==========================================
-# CLEAN SESSION MANAGEMENT
-# ==========================================
 def save_session(email_addr, password):
-    """يحفظ الجلسة في session_state + Cookie المتصفح"""
     encoded = base64.b64encode(f"{email_addr}|||{password}".encode()).decode()
-    st.session_state['_sess_data'] = encoded
-    set_cookie_js("imap_sess", encoded, days=30)
-    # حذف الملف القديم
+    controller.set("imap_sess", encoded)
     if os.path.exists('.email_session.dat'):
         try: os.remove('.email_session.dat')
         except: pass
 
 def load_session():
-    """
-    يحاول يقرأ الجلسة:
-    1. أولاً من session_state (بعد F5 في نفس التاب)
-    2. ثانياً من query_params (لو كانت محفوظة)
-    3. ثالثاً من الملف القديم (للتوافق مع الإصدار القديم - مرة وحيدة)
-    """
-    # 1. من session_state
-    if '_sess_data' in st.session_state:
-        try:
-            decoded = base64.b64decode(st.session_state['_sess_data']).decode()
+    try:
+        val = controller.get("imap_sess")
+        if val:
+            decoded = base64.b64decode(val).decode()
             email_addr, password = decoded.split('|||')
             return {'email': email_addr, 'password': password}
-        except: pass
-
-    # 2. من الملف القديم (migration لمرة وحيدة)
+    except: pass
+    # migration من الملف القديم
     if os.path.exists('.email_session.dat'):
         try:
             with open('.email_session.dat', 'r') as f:
                 encoded = f.read()
             decoded = base64.b64decode(encoded).decode()
             email_addr, password = decoded.split('|||')
-            # نحفظها في session_state ونحذف الملف
-            st.session_state['_sess_data'] = encoded
             os.remove('.email_session.dat')
             return {'email': email_addr, 'password': password}
         except: pass
-
     return None
 
 def clear_session():
-    """يمسح الجلسة من session_state + Cookie"""
-    if '_sess_data' in st.session_state:
-        del st.session_state['_sess_data']
-    delete_cookie_js("imap_sess")
+    try: controller.remove("imap_sess")
+    except: pass
     if os.path.exists('.email_session.dat'):
         try: os.remove('.email_session.dat')
         except: pass
@@ -151,23 +94,68 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
+# AUTO-LOGIN LOGIC (Double-Rerun Pattern)
+# ==========================================
+# على Streamlit Cloud، الـ cookies كتتحمل async
+# في أول render كترجع None، في الثاني كترجع القيمة
+# الحل: نعملو rerun وحدة إذا ما زال ما جربناش
+
+def connect_imap(user, password):
+    try:
+        mail = imaplib.IMAP4_SSL("imap.gmail.com")
+        mail.login(user, password)
+        return mail
+    except Exception as e:
+        st.error(f"❌ Login Error: {e}")
+        return None
+
+if 'mail_connected' not in st.session_state:
+    st.session_state['mail_connected'] = False
+    st.session_state['_cookie_checked'] = False
+
+# الـ cookie check - مرتان باش نضمن
+if not st.session_state['mail_connected'] and not st.session_state['_cookie_checked']:
+    st.session_state['_cookie_checked'] = True
+    saved = load_session()
+    if saved:
+        mail_test = connect_imap(saved['email'], saved['password'])
+        if mail_test:
+            st.session_state['mail_connected'] = True
+            st.session_state['saved_email'] = saved['email']
+            st.session_state['saved_password'] = saved['password']
+            mail_test.logout()
+    else:
+        # أول render، الـ cookie ما تحملتش بعد - نعاودو مرة
+        st.rerun()
+
+elif not st.session_state['mail_connected'] and st.session_state['_cookie_checked']:
+    # المرة الثانية - نجربو مرة أخيرة
+    if not st.session_state.get('_cookie_checked_twice'):
+        st.session_state['_cookie_checked_twice'] = True
+        saved = load_session()
+        if saved:
+            mail_test = connect_imap(saved['email'], saved['password'])
+            if mail_test:
+                st.session_state['mail_connected'] = True
+                st.session_state['saved_email'] = saved['email']
+                st.session_state['saved_password'] = saved['password']
+                mail_test.logout()
+                st.rerun()
+
+# ==========================================
 # TABS
 # ==========================================
 tab1, tab2, tab3 = st.tabs(["💻 HTML FUSION EDITOR", "📧 IMAP EMAIL TOOL", "⚡ CMH-1 PRO"])
 
-# ==========================================
-# TAB 1
-# ==========================================
 with tab1:
     if os.path.exists("V6.html"):
         with open("V6.html", "r", encoding="utf-8") as f:
-            html_code = f.read()
-        components.html(html_code, height=920, scrolling=True)
+            components.html(f.read(), height=920, scrolling=True)
     else:
         st.error("⚠️ Fichier 'V6.html' ma kaynch!")
 
 # ==========================================
-# TAB 2: IMAP EMAIL TOOL
+# TAB 2
 # ==========================================
 with tab2:
 
@@ -194,8 +182,7 @@ with tab2:
 
     def clean_html_to_plain(html_content):
         clean = re.sub(r'<[^>]+>', ' ', html_content)
-        clean = re.sub(r'\s+', ' ', clean).strip()
-        return clean
+        return re.sub(r'\s+', ' ', clean).strip()
 
     def get_email_body_text(msg_obj):
         body_text = ""
@@ -216,8 +203,7 @@ with tab2:
                 payload = msg_obj.get_payload(decode=True)
                 if payload:
                     decoded = payload.decode('utf-8', 'ignore')
-                    if msg_obj.get_content_type() == 'text/html': body_text = clean_html_to_plain(decoded)
-                    else: body_text = decoded
+                    body_text = clean_html_to_plain(decoded) if msg_obj.get_content_type() == 'text/html' else decoded
             except: pass
         return body_text
 
@@ -229,45 +215,16 @@ with tab2:
             msg_id = msg_obj.get('Message-ID', '')
             if msg_id and msg_id in seen_ids:
                 duplicates.append({'index': idx+1, 'id': email_id, 'reason': 'Same Message-ID', 'subject': msg_obj.get('Subject', 'No Subject')}); continue
-            subject = msg_obj.get('Subject', ''); from_addr = msg_obj.get('From', ''); date = msg_obj.get('Date', '')
-            hash_val = __import__('hashlib').md5(f"{subject}|{from_addr}|{date}".encode()).hexdigest()
+            hash_val = hashlib.md5(f"{msg_obj.get('Subject','')}|{msg_obj.get('From','')}|{msg_obj.get('Date','')}".encode()).hexdigest()
             if hash_val in seen_hashes:
-                duplicates.append({'index': idx+1, 'id': email_id, 'reason': 'Same Subject+From+Date', 'subject': subject}); continue
+                duplicates.append({'index': idx+1, 'id': email_id, 'reason': 'Same Subject+From+Date', 'subject': msg_obj.get('Subject','')}); continue
             if msg_id: seen_ids.add(msg_id)
             seen_hashes.add(hash_val); unique_emails.append(email_data)
         return unique_emails, duplicates
 
-    def connect_imap(user, password):
-        try:
-            mail = imaplib.IMAP4_SSL("imap.gmail.com")
-            mail.login(user, password)
-            return mail
-        except Exception as e:
-            st.error(f"❌ Login Error: {e}")
-            return None
-
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("## 🚀 GMAIL/IMAP RAW TOOL")
     st.markdown("Developed by **@ayoubrhattoy**")
-
-    # ====== AUTO-LOAD SESSION ======
-    # session_state كتبقى ما دام نفس التاب مفتوح (F5 كيمسحها على Streamlit Cloud)
-    # لكن save_session كتحفظ في _sess_data اللي هو في session_state
-    # الحل: نحفظو في st.session_state['mail_connected'] ونتحقق من load_session() كل مرة
-
-    if 'mail_connected' not in st.session_state:
-        saved = load_session()
-        if saved:
-            mail_test = connect_imap(saved['email'], saved['password'])
-            if mail_test:
-                st.session_state['mail_connected'] = True
-                st.session_state['saved_email'] = saved['email']
-                st.session_state['saved_password'] = saved['password']
-                mail_test.logout()
-            else:
-                st.session_state['mail_connected'] = False
-        else:
-            st.session_state['mail_connected'] = False
 
     col1, col2 = st.columns([1, 2], gap="large")
 
@@ -275,13 +232,9 @@ with tab2:
         if st.session_state.get('mail_connected'):
             st.success(f"✅ Connected: {st.session_state.get('saved_email', 'Unknown')}")
             if st.button("🔌 Disconnect", type="secondary", use_container_width=True):
-                st.session_state['mail_connected'] = False
                 clear_session()
-                for k in ['saved_email', 'saved_password', '_sess_data']:
-                    if k in st.session_state: del st.session_state[k]
-                for key in list(st.session_state.keys()):
-                    if key.startswith('folders_') or key.startswith('counts_'):
-                        del st.session_state[key]
+                for k in list(st.session_state.keys()):
+                    del st.session_state[k]
                 st.rerun()
         else:
             st.info("🔐 Login Credentials")
@@ -295,12 +248,12 @@ with tab2:
                         st.session_state['mail_connected'] = True
                         st.session_state['saved_email'] = email_user
                         st.session_state['saved_password'] = app_pass
+                        st.session_state['_cookie_checked'] = True
+                        st.session_state['_cookie_checked_twice'] = True
                         save_session(email_user, app_pass)
                         st.success("✅ Connected!")
                         mail_conn.logout()
                         st.rerun()
-                    else:
-                        st.session_state['mail_connected'] = False
                 else:
                     st.warning("Please enter credentials.")
 
@@ -317,8 +270,7 @@ with tab2:
                     for folder in folders:
                         folder_str = folder.decode()
                         match = re.search(r'"([^"]+)"$', folder_str) or re.search(r' ([^ ]+)$', folder_str)
-                        if match: clean_folders.append(match.group(1))
-                        else: clean_folders.append(folder_str)
+                        clean_folders.append(match.group(1) if match else folder_str)
                     st.session_state[cache_key] = clean_folders
                     st.session_state['refresh_folders'] = False
                 else:
@@ -337,15 +289,14 @@ with tab2:
                             try:
                                 mail.select(f'"{folder}"', readonly=True)
                                 typ, data = mail.search(None, 'ALL')
-                                if typ == 'OK':
-                                    folder_counts[folder] = len(data[0].split()) if data[0] else 0
+                                folder_counts[folder] = len(data[0].split()) if typ == 'OK' and data[0] else 0
                             except: folder_counts[folder] = 0
                     st.session_state[count_cache_key] = folder_counts
                     st.session_state['refresh_counts'] = False
                 else:
                     folder_counts = st.session_state[count_cache_key]
 
-                folder_options = [f"{folder} ({folder_counts.get(folder, 0)} emails)" for folder in clean_folders]
+                folder_options = [f"{f} ({folder_counts.get(f,0)} emails)" for f in clean_folders]
                 selected_display = st.selectbox("📂 Select Folder", folder_options,
                     index=next((i for i, f in enumerate(clean_folders) if f == "INBOX"), 0))
                 selected_folder = clean_folders[folder_options.index(selected_display)]
@@ -353,14 +304,13 @@ with tab2:
 
                 with st.expander("⚙️ SETTINGS (RAW BODY PRESERVATION)", expanded=True):
                     st.info(f"📊 Total emails in folder: **{total_emails}**")
-                    col_range1, col_range2 = st.columns(2)
-                    with col_range1:
+                    col_r1, col_r2 = st.columns(2)
+                    with col_r1:
                         start_from = st.number_input("🔢 Start from email #:", min_value=1, max_value=max(1, total_emails), value=1)
-                    with col_range2:
+                    with col_r2:
                         download_count = st.number_input("📥 How many to download:", min_value=1, max_value=max(1, total_emails), value=min(10, max(1, total_emails)))
                     end_at = min(start_from + download_count - 1, total_emails)
-                    if total_emails > 0: st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at - start_from + 1} emails)")
-                    else: st.caption("⚠️ No emails available in this folder")
+                    st.caption(f"📌 Will download: Email #{start_from} to #{end_at} ({end_at-start_from+1} emails)" if total_emails > 0 else "⚠️ No emails available")
                     st.markdown("---")
                     c1, c2 = st.columns(2)
                     with c1:
@@ -370,7 +320,7 @@ with tab2:
                         extract_plain_only = st.checkbox("8️⃣ Extract Body Only?")
                         export_format = "Merged"
                         if extract_plain_only:
-                            export_format = st.radio("📤 Export Format:", options=["Merged (1 file with __SEP__)", "Separate files (ZIP)"], horizontal=True)
+                            export_format = st.radio("📤 Export Format:", ["Merged (1 file with __SEP__)", "Separate files (ZIP)"], horizontal=True)
                     with c2:
                         std_headers = st.checkbox("3️⃣ Set To=[*to], Date=[*date]")
                         mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID")
@@ -401,9 +351,8 @@ with tab2:
                             for i, eid in enumerate(id_list):
                                 try:
                                     _, msg_data = mail.fetch(eid, '(RFC822)')
-                                    raw_bytes = msg_data[0][1]
-                                    email_message = email.message_from_bytes(raw_bytes)
-                                    email_data_list.append({'msg': email_message, 'id': eid, 'raw': raw_bytes})
+                                    em = email.message_from_bytes(msg_data[0][1])
+                                    email_data_list.append({'msg': em, 'id': eid, 'raw': msg_data[0][1]})
                                 except: continue
                             unique_emails, duplicates = detect_duplicates(email_data_list)
                             if duplicates:
@@ -421,35 +370,34 @@ with tab2:
 
                         if extract_plain_only:
                             if "Merged" in export_format:
-                                full_extracted_text = []
+                                texts = []
                                 for i, eid in enumerate(id_list):
                                     try:
                                         _, msg_data = mail.fetch(eid, '(RFC822)')
-                                        email_message = email.message_from_bytes(msg_data[0][1])
-                                        body_content = get_email_body_text(email_message)
-                                        if body_content: full_extracted_text.append(body_content)
+                                        em = email.message_from_bytes(msg_data[0][1])
+                                        body = get_email_body_text(em)
+                                        if body: texts.append(body)
                                         prog_bar.progress((i+1)/len(id_list))
                                     except: continue
-                                final_output = "\n__SEP__\n".join(full_extracted_text)
                                 prog_bar.empty()
-                                status_msg.success(f"🎉 Extracted {len(full_extracted_text)} emails into 1 merged file!")
-                                st.download_button("📥 Download Merged Text File (.txt)", data=final_output, file_name="emails_bodies_merged.txt", mime="text/plain")
+                                status_msg.success(f"🎉 Extracted {len(texts)} emails into 1 merged file!")
+                                st.download_button("📥 Download Merged Text File (.txt)", "\n__SEP__\n".join(texts), "emails_bodies_merged.txt", "text/plain")
                             else:
                                 zip_buf = io.BytesIO()
                                 with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
                                     for i, eid in enumerate(id_list):
                                         try:
                                             _, msg_data = mail.fetch(eid, '(RFC822)')
-                                            email_message = email.message_from_bytes(msg_data[0][1])
-                                            body_content = get_email_body_text(email_message)
-                                            if body_content:
-                                                fname = f"{i+1}_{clean_filename(email_message.get('Subject','no_subject'))}.txt" if name_by_subj else f"email_{i+1}.txt"
-                                                zf.writestr(fname, body_content.encode('utf-8'))
+                                            em = email.message_from_bytes(msg_data[0][1])
+                                            body = get_email_body_text(em)
+                                            if body:
+                                                fname = f"{i+1}_{clean_filename(em.get('Subject',''))}.txt" if name_by_subj else f"email_{i+1}.txt"
+                                                zf.writestr(fname, body.encode('utf-8'))
                                             prog_bar.progress((i+1)/len(id_list))
                                         except: continue
                                 prog_bar.empty()
-                                status_msg.success(f"🎉 Done!")
-                                st.download_button("📥 Download ZIP", data=zip_buf.getvalue(), file_name="emails_bodies_separate.zip", mime="application/zip", use_container_width=True)
+                                status_msg.success("🎉 Done!")
+                                st.download_button("📥 Download ZIP", zip_buf.getvalue(), "emails_bodies_separate.zip", "application/zip", use_container_width=True)
                         else:
                             zip_buf = io.BytesIO()
                             with zipfile.ZipFile(zip_buf, "a", zipfile.ZIP_DEFLATED, False) as zf:
@@ -457,35 +405,34 @@ with tab2:
                                     try:
                                         _, msg = mail.fetch(eid, '(RFC822)')
                                         raw = msg[0][1]
-                                        sep = b'\r\n\r\n'
-                                        idx = raw.find(sep)
+                                        sep = b'\r\n\r\n'; idx = raw.find(sep)
                                         if idx == -1: sep = b'\n\n'; idx = raw.find(sep)
                                         head = raw[:idx] if idx != -1 else raw
                                         body = raw[idx+len(sep):] if idx != -1 else b""
-                                        mime_msg = email.message_from_bytes(head)
-                                        original_subj = mime_msg.get('Subject', 'no_subject')
-                                        if rep_dom and mime_msg.get('From'):
-                                            n_from = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mime_msg['From'])
-                                            del mime_msg['From']; mime_msg['From'] = n_from
+                                        mm = email.message_from_bytes(head)
+                                        orig_subj = mm.get('Subject', 'no_subject')
+                                        if rep_dom and mm.get('From'):
+                                            nf = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mm['From'])
+                                            del mm['From']; mm['From'] = nf
                                         if std_headers:
-                                            if 'To' in mime_msg: del mime_msg['To']
-                                            mime_msg['To'] = '[*to]'
-                                            if 'Date' in mime_msg: del mime_msg['Date']
-                                            mime_msg['Date'] = '[*date]'
+                                            if 'To' in mm: del mm['To']
+                                            mm['To'] = '[*to]'
+                                            if 'Date' in mm: del mm['Date']
+                                            mm['Date'] = '[*date]'
                                         if custom_headers_text:
                                             for l in custom_headers_text.split('\n'):
-                                                if ":" in l:
-                                                    k, v = l.split(":", 1)
-                                                    if k.strip() in mime_msg: del mime_msg[k.strip()]
-                                                    mime_msg[k.strip()] = v.strip()
-                                        if mod_eid and mime_msg.get('Message-ID') and '@' in mime_msg['Message-ID']:
-                                            new_mid = mime_msg['Message-ID'].replace('@', '[EID]@', 1)
-                                            del mime_msg['Message-ID']; mime_msg['Message-ID'] = new_mid
+                                                if ':' in l:
+                                                    k, v = l.split(':', 1)
+                                                    if k.strip() in mm: del mm[k.strip()]
+                                                    mm[k.strip()] = v.strip()
+                                        if mod_eid and mm.get('Message-ID') and '@' in mm['Message-ID']:
+                                            new_mid = mm['Message-ID'].replace('@', '[EID]@', 1)
+                                            del mm['Message-ID']; mm['Message-ID'] = new_mid
                                         if clean_auth:
-                                            for h in ['DKIM-Signature', 'Authentication-Results', 'Received', 'Received-SPF', 'ARC-Authentication-Results', 'ARC-Message-Signature', 'ARC-Seal']:
-                                                while h in mime_msg: del mime_msg[h]
-                                        fin = mime_msg.as_bytes() + b'\r\n\r\n' + body
-                                        fname = f"{i+1}_{clean_filename(original_subj)}.txt" if name_by_subj else f"email_{i+1}.txt"
+                                            for h in ['DKIM-Signature','Authentication-Results','Received','Received-SPF','ARC-Authentication-Results','ARC-Message-Signature','ARC-Seal']:
+                                                while h in mm: del mm[h]
+                                        fin = mm.as_bytes() + b'\r\n\r\n' + body
+                                        fname = f"{i+1}_{clean_filename(orig_subj)}.txt" if name_by_subj else f"email_{i+1}.txt"
                                         zf.writestr(fname, fin)
                                         prog_bar.progress((i+1)/len(id_list))
                                     except: continue
@@ -496,9 +443,6 @@ with tab2:
                         st.session_state['refresh_counts'] = True
                 mail.logout()
 
-# ==========================================
-# TAB 3: CMH-1 PRO
-# ==========================================
 with tab3:
     if os.path.exists("cmh1-pro.html"):
         with open("cmh1-pro.html", "r", encoding="utf-8") as f:
