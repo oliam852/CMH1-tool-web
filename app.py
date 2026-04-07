@@ -4,7 +4,7 @@ import os, re, email, imaplib, zipfile, io, base64, json, hashlib, time
 from email.header import decode_header
 
 # ==========================================
-# SESSION VIA URL TOKEN (بدون أي library)
+# SESSION VIA URL TOKEN
 # ==========================================
 SESSIONS_FILE = "sessions.json"
 
@@ -305,41 +305,67 @@ with tab2:
 
                     c1, c2 = st.columns(2)
                     with c1:
+                        # 2️⃣ Change From Domain
                         rep_dom = st.checkbox("2️⃣ Change 'From' Domain")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                         st.markdown("---")
 
-                        # ✅ NEW: Modify Subject
+                        # 🔤 Modify Subject
                         mod_subject = st.checkbox("🔤 Modify Subject")
-                        subj_prefix = ""
-                        subj_suffix = ""
-                        subj_replace_from = ""
-                        subj_replace_to = ""
+                        subj_new_value = ""
                         if mod_subject:
-                            subj_new_value = st.text_input("   ✏️ New Subject:", value="", placeholder="مثلا: [S]")
-
+                            subj_new_value = st.text_input(
+                                "   ✏️ New Subject:",
+                                value="",
+                                placeholder="مثلا: [S]"
+                            )
+                            st.caption("⚠️ غادي يمسح Subject الأصلي ويحط هاد فقط")
                         st.markdown("---")
+
+                        # 📄 Modify Content-Type
+                        mod_content_type = st.checkbox("📄 Modify Content-Type")
+                        custom_content_type = ""
+                        if mod_content_type:
+                            custom_content_type = st.text_input(
+                                "   Content-Type:",
+                                value="text/plain; charset=UTF-8",
+                                placeholder="text/html; charset=utf-8"
+                            )
+                        st.markdown("---")
+
+                        # 8️⃣ Extract Body Only
                         extract_plain = st.checkbox("8️⃣ Extract Body Only?")
                         exp_fmt = "Merged"
                         if extract_plain:
                             exp_fmt = st.radio("📤 Export Format:", ["Merged (1 file with __SEP__)", "Separate files (ZIP)"], horizontal=True)
 
                     with c2:
+                        # 3️⃣ Std headers
                         std_hdrs = st.checkbox("3️⃣ Set To=[*to], Date=[*date]")
+                        # 5️⃣ EID
                         mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID")
+                        # 6️⃣ Remove DKIM
                         clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers")
+                        # 7️⃣ Name by subject
                         name_by_subj = st.checkbox("7️⃣ Name files by Subject")
-
                         st.markdown("---")
-                        # ✅ NEW: Headers Only
-                        headers_only = st.checkbox("📋 Headers Only")
+
+                        # 📋 Headers Only
+                        headers_only = st.checkbox("📋 Headers Only (بلا Body)")
                         if headers_only:
-                            st.caption("⚠️ The file will only contain headers with no other content.")
-
+                            st.caption("⚠️ الملف غادي يحتوي غير على Headers بلا أي محتوى")
                         st.markdown("---")
+
+                        # 9️⃣ Remove Duplicates
                         det_dupes = st.checkbox("9️⃣ Remove Duplicates")
 
+                    # 4️⃣ Custom Headers
                     custom_hdrs = st.text_area("4️⃣ Custom Headers (Key:Value)")
+                    st.markdown("---")
+
+                    # 🗂️ ZIP File Name
+                    zip_filename = st.text_input("🗂️ ZIP File Name:", value="emails_raw_pack", placeholder="اكتب اسم بلا .zip")
+                    zip_filename = zip_filename.strip().replace(" ", "_") or "emails_raw_pack"
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("🚀 START DOWNLOAD & PROCESS", type="primary", use_container_width=True):
@@ -400,7 +426,7 @@ with tab2:
                                             pbar.progress((i+1)/len(id_list))
                                         except: continue
                                 pbar.empty(); smsg.success("🎉 Done!")
-                                st.download_button("📥 Download ZIP", zbuf.getvalue(), "emails_bodies_separate.zip", "application/zip", use_container_width=True)
+                                st.download_button("📥 Download ZIP", zbuf.getvalue(), f"{zip_filename}.zip", "application/zip", use_container_width=True)
                         else:
                             zbuf = io.BytesIO()
                             with zipfile.ZipFile(zbuf,"a",zipfile.ZIP_DEFLATED,False) as zf:
@@ -423,45 +449,49 @@ with tab2:
                                         # 3️⃣ Std headers
                                         if std_hdrs:
                                             if 'To' in mm: del mm['To']
-                                            mm['To']='[*to]'
+                                            mm['To'] = '[*to]'
                                             if 'Date' in mm: del mm['Date']
-                                            mm['Date']='[*date]'
+                                            mm['Date'] = '[*date]'
 
                                         # 4️⃣ Custom headers
                                         if custom_hdrs:
                                             for l in custom_hdrs.split('\n'):
                                                 if ':' in l:
-                                                    k,v=l.split(':',1)
+                                                    k, v = l.split(':', 1)
                                                     if k.strip() in mm: del mm[k.strip()]
-                                                    mm[k.strip()]=v.strip()
+                                                    mm[k.strip()] = v.strip()
 
                                         # 5️⃣ Add [EID] to Message-ID
                                         if mod_eid and mm.get('Message-ID') and '@' in mm['Message-ID']:
-                                            nm=mm['Message-ID'].replace('@','[EID]@',1)
-                                            del mm['Message-ID']; mm['Message-ID']=nm
+                                            nm = mm['Message-ID'].replace('@', '[EID]@', 1)
+                                            del mm['Message-ID']; mm['Message-ID'] = nm
 
                                         # 6️⃣ Remove DKIM/SPF
                                         if clean_auth:
                                             for h in ['DKIM-Signature','Authentication-Results','Received','Received-SPF','ARC-Authentication-Results','ARC-Message-Signature','ARC-Seal']:
                                                 while h in mm: del mm[h]
 
-                                        # ✅ NEW: 🔤 Modify Subject
+                                        # 🔤 Modify Subject — يمسح الأصلي ويحط اللي كتبتي فقط
                                         if mod_subject:
-                                            if 'Subject' in mm:
-                                                del mm['Subject']
-                                                mm['Subject'] = subj_new_value
+                                            if 'Subject' in mm: del mm['Subject']
+                                            mm['Subject'] = subj_new_value
 
-                                        # ✅ NEW: 📋 Headers Only — body = فارغ
+                                        # 📄 Modify Content-Type — يمسح الأصلي ويحط اللي كتبتي
+                                        if mod_content_type and custom_content_type:
+                                            if 'Content-Type' in mm: del mm['Content-Type']
+                                            mm['Content-Type'] = custom_content_type
+
+                                        # 📋 Headers Only — body تبقى فارغة
                                         if headers_only:
                                             body = b""
 
-                                        fin = mm.as_bytes()+b'\r\n\r\n'+body
+                                        fin = mm.as_bytes() + b'\r\n\r\n' + body
                                         fn = f"{i+1}_{clean_filename(os_)}.txt" if name_by_subj else f"email_{i+1}.txt"
                                         zf.writestr(fn, fin)
                                         pbar.progress((i+1)/len(id_list))
                                     except: continue
                             pbar.empty(); smsg.success("🎉 Download Complete!")
-                            st.download_button("📥 Download ZIP File", zbuf.getvalue(), "emails_raw_pack.zip", "application/zip", use_container_width=True)
+                            st.download_button("📥 Download ZIP File", zbuf.getvalue(), f"{zip_filename}.zip", "application/zip", use_container_width=True)
                         st.session_state['refresh_counts'] = True
                 mail.logout()
 
