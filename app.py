@@ -319,7 +319,7 @@ with tab2:
                                 value="",
                                 placeholder="مثلا: [S]"
                             )
-                            st.caption("⚠️ غادي يمسح Subject الأصلي ويحط هاد فقط")
+                            st.caption("⚠️ Delete the original subject and put this one only")
                         st.markdown("---")
 
                         # 📄 Modify Content-Type
@@ -353,7 +353,7 @@ with tab2:
                         # 📋 Headers Only
                         headers_only = st.checkbox("📋 Headers Only (بلا Body)")
                         if headers_only:
-                            st.caption("⚠️ الملف غادي يحتوي غير على Headers بلا أي محتوى")
+                            st.caption("⚠️ The file will only contain headers with no other content.")
                         st.markdown("---")
 
                         # 9️⃣ Remove Duplicates
