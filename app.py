@@ -447,9 +447,9 @@ with tab2:
 
                                         # ✅ NEW: 🔤 Modify Subject
                                         if mod_subject:
-    if 'Subject' in mm:
-        del mm['Subject']
-    mm['Subject'] = subj_new_value
+                                            if 'Subject' in mm:
+                                                del mm['Subject']
+                                                mm['Subject'] = subj_new_value
 
                                         # ✅ NEW: 📋 Headers Only — body = فارغ
                                         if headers_only:
