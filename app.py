@@ -6,13 +6,6 @@ from email.header import decode_header
 # ==========================================
 # SESSION VIA URL TOKEN (بدون أي library)
 # ==========================================
-# كيف يخدم:
-# 1. مول يدخل credentials → نولدو token عشوائي
-# 2. نحفظو sessions.json على السيرفر: {token: {email, password}}
-# 3. نحطو token في URL: ?t=abc123
-# 4. F5 → URL كيبقى → token كيبقى → يدخل تلقائي
-# 5. كل متصفح عندو URL خاص بيه → جلسة منفصلة
-
 SESSIONS_FILE = "sessions.json"
 
 def load_all_sessions():
@@ -30,7 +23,6 @@ def save_all_sessions(sessions):
     except: pass
 
 def create_token(email_addr, password):
-    """يولد token فريد ويحفظو"""
     token = hashlib.sha256(f"{email_addr}{password}{time.time()}".encode()).hexdigest()[:32]
     sessions = load_all_sessions()
     sessions[token] = {"email": email_addr, "password": password}
@@ -38,20 +30,17 @@ def create_token(email_addr, password):
     return token
 
 def get_session_by_token(token):
-    """يرجع الجلسة من token"""
     if not token: return None
     sessions = load_all_sessions()
     return sessions.get(token)
 
 def delete_token(token):
-    """يمسح token عند Disconnect"""
     if not token: return
     sessions = load_all_sessions()
     if token in sessions:
         del sessions[token]
         save_all_sessions(sessions)
 
-# migration من الملف القديم
 def migrate_old_session():
     if os.path.exists('.email_session.dat'):
         try:
@@ -120,13 +109,11 @@ def connect_imap(user, password):
         st.error(f"❌ Login Error: {e}")
         return None
 
-# قرا الـ token من URL
 url_token = st.query_params.get("t", None)
 
 if 'mail_connected' not in st.session_state:
     st.session_state['mail_connected'] = False
 
-    # 1. جرب من URL token
     if url_token:
         saved = get_session_by_token(url_token)
         if saved:
@@ -138,7 +125,6 @@ if 'mail_connected' not in st.session_state:
                 st.session_state['current_token'] = url_token
                 mail_test.logout()
 
-    # 2. migration من الملف القديم
     if not st.session_state['mail_connected']:
         old = migrate_old_session()
         if old:
@@ -254,7 +240,6 @@ with tab2:
                         st.session_state['saved_email'] = email_user
                         st.session_state['saved_password'] = app_pass
                         st.session_state['current_token'] = token
-                        # نحطو token في URL → يبقى بعد F5
                         st.query_params["t"] = token
                         st.success("✅ Connected!")
                         mc.logout()
@@ -317,22 +302,46 @@ with tab2:
                     end_at = min(start_from+dl_count-1, total_emails)
                     st.caption(f"📌 Will download: #{start_from} to #{end_at} ({end_at-start_from+1} emails)" if total_emails > 0 else "⚠️ No emails")
                     st.markdown("---")
+
                     c1, c2 = st.columns(2)
                     with c1:
                         rep_dom = st.checkbox("2️⃣ Change 'From' Domain")
                         p_from = st.text_input("   Tag [P_FROM]:", value="[P_FROM]") if rep_dom else "[P_FROM]"
                         st.markdown("---")
+
+                        # ✅ NEW: Modify Subject
+                        mod_subject = st.checkbox("🔤 Modify Subject")
+                        subj_prefix = ""
+                        subj_suffix = ""
+                        subj_replace_from = ""
+                        subj_replace_to = ""
+                        if mod_subject:
+                            subj_prefix = st.text_input("   Prefix (قبل Subject):", value="", placeholder="مثلا: [S] ")
+                            subj_suffix = st.text_input("   Suffix (بعد Subject):", value="", placeholder="مثلا:  [END]")
+                            subj_replace_from = st.text_input("   🔁 Replace this:", value="", placeholder="الكلمة القديمة")
+                            subj_replace_to   = st.text_input("   ➡️ With this:", value="", placeholder="الكلمة الجديدة")
+
+                        st.markdown("---")
                         extract_plain = st.checkbox("8️⃣ Extract Body Only?")
                         exp_fmt = "Merged"
                         if extract_plain:
                             exp_fmt = st.radio("📤 Export Format:", ["Merged (1 file with __SEP__)", "Separate files (ZIP)"], horizontal=True)
+
                     with c2:
                         std_hdrs = st.checkbox("3️⃣ Set To=[*to], Date=[*date]")
                         mod_eid = st.checkbox("5️⃣ Add [EID] to Message-ID")
                         clean_auth = st.checkbox("6️⃣ Remove DKIM/SPF headers")
                         name_by_subj = st.checkbox("7️⃣ Name files by Subject")
+
+                        st.markdown("---")
+                        # ✅ NEW: Headers Only
+                        headers_only = st.checkbox("📋 Headers Only (بلا Body)")
+                        if headers_only:
+                            st.caption("⚠️ الملف غادي يحتوي غير على Headers بلا أي محتوى")
+
                         st.markdown("---")
                         det_dupes = st.checkbox("9️⃣ Remove Duplicates")
+
                     custom_hdrs = st.text_area("4️⃣ Custom Headers (Key:Value)")
 
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -408,26 +417,50 @@ with tab2:
                                         body = raw[idx+len(sep):] if idx!=-1 else b""
                                         mm = email.message_from_bytes(head)
                                         os_ = mm.get('Subject','no_subject')
+
+                                        # 2️⃣ Change From Domain
                                         if rep_dom and mm.get('From'):
                                             nf = re.sub(r'@[a-zA-Z0-9.-]+', f'@{p_from}', mm['From'])
                                             del mm['From']; mm['From'] = nf
+
+                                        # 3️⃣ Std headers
                                         if std_hdrs:
                                             if 'To' in mm: del mm['To']
                                             mm['To']='[*to]'
                                             if 'Date' in mm: del mm['Date']
                                             mm['Date']='[*date]'
+
+                                        # 4️⃣ Custom headers
                                         if custom_hdrs:
                                             for l in custom_hdrs.split('\n'):
                                                 if ':' in l:
                                                     k,v=l.split(':',1)
                                                     if k.strip() in mm: del mm[k.strip()]
                                                     mm[k.strip()]=v.strip()
+
+                                        # 5️⃣ Add [EID] to Message-ID
                                         if mod_eid and mm.get('Message-ID') and '@' in mm['Message-ID']:
                                             nm=mm['Message-ID'].replace('@','[EID]@',1)
                                             del mm['Message-ID']; mm['Message-ID']=nm
+
+                                        # 6️⃣ Remove DKIM/SPF
                                         if clean_auth:
                                             for h in ['DKIM-Signature','Authentication-Results','Received','Received-SPF','ARC-Authentication-Results','ARC-Message-Signature','ARC-Seal']:
                                                 while h in mm: del mm[h]
+
+                                        # ✅ NEW: 🔤 Modify Subject
+                                        if mod_subject and mm.get('Subject'):
+                                            s = decode_header_text(mm['Subject'])
+                                            if subj_replace_from:
+                                                s = s.replace(subj_replace_from, subj_replace_to)
+                                            s = f"{subj_prefix}{s}{subj_suffix}"
+                                            del mm['Subject']
+                                            mm['Subject'] = s
+
+                                        # ✅ NEW: 📋 Headers Only — body = فارغ
+                                        if headers_only:
+                                            body = b""
+
                                         fin = mm.as_bytes()+b'\r\n\r\n'+body
                                         fn = f"{i+1}_{clean_filename(os_)}.txt" if name_by_subj else f"email_{i+1}.txt"
                                         zf.writestr(fn, fin)
