@@ -332,9 +332,9 @@ with tab2:
 
                         st.markdown("---")
                         # ✅ NEW: Headers Only
-                        headers_only = st.checkbox("📋 Headers Only (بلا Body)")
+                        headers_only = st.checkbox("📋 Headers Only")
                         if headers_only:
-                            st.caption("⚠️ الملف غادي يحتوي غير على Headers بلا أي محتوى")
+                            st.caption("⚠️ The file will only contain headers with no other content.")
 
                         st.markdown("---")
                         det_dupes = st.checkbox("9️⃣ Remove Duplicates")
