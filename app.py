@@ -316,10 +316,7 @@ with tab2:
                         subj_replace_from = ""
                         subj_replace_to = ""
                         if mod_subject:
-                            subj_prefix = st.text_input("   Prefix (قبل Subject):", value="", placeholder="مثلا: [S] ")
-                            subj_suffix = st.text_input("   Suffix (بعد Subject):", value="", placeholder="مثلا:  [END]")
-                            subj_replace_from = st.text_input("   🔁 Replace this:", value="", placeholder="الكلمة القديمة")
-                            subj_replace_to   = st.text_input("   ➡️ With this:", value="", placeholder="الكلمة الجديدة")
+                            subj_new_value = st.text_input("   ✏️ New Subject:", value="", placeholder="مثلا: [S]")
 
                         st.markdown("---")
                         extract_plain = st.checkbox("8️⃣ Extract Body Only?")
@@ -449,13 +446,10 @@ with tab2:
                                                 while h in mm: del mm[h]
 
                                         # ✅ NEW: 🔤 Modify Subject
-                                        if mod_subject and mm.get('Subject'):
-                                            s = decode_header_text(mm['Subject'])
-                                            if subj_replace_from:
-                                                s = s.replace(subj_replace_from, subj_replace_to)
-                                            s = f"{subj_prefix}{s}{subj_suffix}"
-                                            del mm['Subject']
-                                            mm['Subject'] = s
+                                        if mod_subject:
+    if 'Subject' in mm:
+        del mm['Subject']
+    mm['Subject'] = subj_new_value
 
                                         # ✅ NEW: 📋 Headers Only — body = فارغ
                                         if headers_only:
