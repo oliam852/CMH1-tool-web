@@ -4,1043 +4,872 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CMH1 — Email Header Processor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:        #0d0e0f;
-    --surface:   #141618;
-    --panel:     #191b1e;
-    --border:    rgba(255,255,255,0.06);
-    --border-hi: rgba(255,186,0,0.4);
-    --amber:     #ffba00;
-    --amber-dim: rgba(255,186,0,0.15);
-    --amber-glow:rgba(255,186,0,0.08);
-    --red:       #ff4545;
-    --green:     #39d98a;
-    --text:      #e8e6e0;
-    --muted:     #5a5855;
-    --muted2:    #3a3835;
-    --mono:      'Space Mono', monospace;
-    --display:   'Bebas Neue', sans-serif;
-    --body:      'DM Mono', monospace;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: var(--body);
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
-  }
-
-  /* Noise texture overlay */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
-
-  /* Ambient light */
-  body::after {
-    content: '';
-    position: fixed;
-    top: -30%;
-    right: -20%;
-    width: 60vw;
-    height: 60vw;
-    background: radial-gradient(circle, rgba(255,186,0,0.04) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .wrap {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 2rem 4rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ── HEADER ── */
-  header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding: 2.5rem 0 3rem;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 3rem;
-    animation: fadeUp 0.6s ease both;
-  }
-
-  .brand { display: flex; flex-direction: column; gap: 0.3rem; }
-
-  .brand-badge {
-    font-family: var(--body);
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    color: var(--amber);
-    text-transform: uppercase;
-    background: var(--amber-dim);
-    padding: 0.2rem 0.7rem;
-    border-radius: 2px;
-    display: inline-block;
-    width: fit-content;
-    border: 1px solid rgba(255,186,0,0.25);
-  }
-
-  .brand-name {
-    font-family: var(--display);
-    font-size: clamp(3rem, 6vw, 5rem);
-    letter-spacing: 0.04em;
-    line-height: 1;
-    color: var(--text);
-  }
-
-  .brand-sub {
-    font-size: 0.72rem;
-    color: var(--muted);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .header-stats {
-    display: flex;
-    gap: 2rem;
-    align-items: flex-end;
-    padding-bottom: 0.25rem;
-  }
-
-  .stat {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
-  }
-
-  .stat-num {
-    font-family: var(--mono);
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--amber);
-  }
-
-  .stat-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* ── MAIN LAYOUT ── */
-  .main {
-    display: grid;
-    grid-template-columns: 1fr 420px;
-    gap: 1.5rem;
-    align-items: start;
-  }
-
-  /* ── PANELS ── */
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;
-    animation: fadeUp 0.5s ease both;
-  }
-
-  .panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel);
-  }
-
-  .panel-title {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .panel-badge {
-    font-size: 0.6rem;
-    letter-spacing: 0.1em;
-    color: var(--amber);
-    background: var(--amber-dim);
-    padding: 0.15rem 0.5rem;
-    border-radius: 2px;
-  }
-
-  .panel-body { padding: 1.25rem; }
-
-  /* ── TABS ── */
-  .tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .tab {
-    font-family: var(--body);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    padding: 0.7rem 1.25rem;
-    border: none;
-    background: none;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: all 0.2s;
-  }
-
-  .tab:hover { color: var(--text); }
-
-  .tab.active {
-    color: var(--amber);
-    border-bottom-color: var(--amber);
-  }
-
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  /* ── TEXTAREA ── */
-  textarea, input[type="text"] {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-family: var(--body);
-    font-size: 0.8rem;
-    line-height: 1.7;
-    resize: none;
-    outline: none;
-  }
-
-  .input-area {
-    padding: 1.25rem;
-    min-height: 320px;
-    display: flex;
-    flex-direction: column;
-  }
-
-  textarea { flex: 1; min-height: 280px; }
-  textarea::placeholder { color: var(--muted2); }
-
-  /* ── DROP ZONE ── */
-  .drop-zone {
-    margin: 1.25rem;
-    border: 1px dashed var(--muted2);
-    border-radius: 4px;
-    padding: 2.5rem 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .drop-zone:hover, .drop-zone.dragover {
-    border-color: var(--amber);
-    background: var(--amber-glow);
-  }
-
-  .drop-icon {
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
-    opacity: 0.5;
-  }
-
-  .drop-zone p { font-size: 0.75rem; color: var(--muted); }
-  .drop-zone span { color: var(--amber); }
-
-  /* ── FILE LIST ── */
-  .file-list { max-height: 200px; overflow-y: auto; padding: 0 1.25rem 1.25rem; }
-
-  .file-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    margin-bottom: 0.4rem;
-    font-size: 0.75rem;
-  }
-
-  .file-remove {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 1rem;
-    transition: color 0.2s;
-    line-height: 1;
-  }
-
-  .file-remove:hover { color: var(--red); }
-
-  /* ── SETTINGS PANEL ── */
-  .settings-panel { animation-delay: 0.1s; }
-
-  /* ── FIELD ── */
-  .field { margin-bottom: 1.25rem; }
-
-  .field-label {
-    font-size: 0.6rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--muted);
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-
-  .field-input {
-    width: 100%;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0.55rem 0.85rem;
-    color: var(--text);
-    font-family: var(--body);
-    font-size: 0.78rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .field-input:focus { border-color: var(--amber); }
-  .field-input::placeholder { color: var(--muted2); }
-
-  textarea.field-input { min-height: 70px; resize: vertical; line-height: 1.6; }
-
-  /* ── QUICK TAGS ── */
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-top: 0.45rem;
-  }
-
-  .tag {
-    font-size: 0.6rem;
-    padding: 0.2rem 0.55rem;
-    border: 1px solid var(--muted2);
-    border-radius: 2px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    background: none;
-    font-family: var(--body);
-  }
-
-  .tag:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
-
-  /* ── SENDER ROW ── */
-  .sender-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0.4rem 0.75rem;
-    margin-bottom: 0.45rem;
-  }
-
-  .sender-row input {
-    background: none;
-    border: none;
-    color: var(--text);
-    font-family: var(--body);
-    font-size: 0.78rem;
-    flex: 1;
-    outline: none;
-  }
-
-  .sender-at { color: var(--muted); font-size: 0.85rem; }
-
-  /* ── TOGGLE ── */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.6rem;
-  }
-
-  .toggle-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-
-  .toggle {
-    width: 32px;
-    height: 17px;
-    background: var(--muted2);
-    border-radius: 20px;
-    position: relative;
-    cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
-  }
-
-  .toggle.on { background: var(--amber); }
-
-  .toggle::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 13px; height: 13px;
-    background: var(--bg);
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-
-  .toggle.on::after { transform: translateX(15px); }
-
-  /* ── CHECKBOXES ── */
-  .checks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.4rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .check-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.6rem;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-size: 0.68rem;
-    color: var(--muted);
-  }
-
-  .check-item:hover { border-color: var(--muted2); color: var(--text); }
-  .check-item.checked { border-color: rgba(255,186,0,0.3); color: var(--text); background: var(--amber-glow); }
-  .check-item.danger.checked { border-color: rgba(255,69,69,0.3); background: rgba(255,69,69,0.06); }
-
-  .check-box {
-    width: 13px; height: 13px;
-    border: 1px solid var(--muted2);
-    border-radius: 2px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    font-size: 0.55rem;
-    transition: all 0.15s;
-  }
-
-  .check-item.checked .check-box { background: var(--amber); border-color: var(--amber); color: var(--bg); }
-  .check-item.danger.checked .check-box { background: var(--red); border-color: var(--red); }
-
-  /* ── DIVIDER ── */
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 1.25rem 0;
-  }
-
-  /* ── PROCESS BTN ── */
-  .btn-process {
-    width: 100%;
-    background: var(--amber);
-    color: var(--bg);
-    border: none;
-    border-radius: 3px;
-    padding: 0.85rem 1.5rem;
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-process::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0);
-    transition: background 0.2s;
-  }
-
-  .btn-process:hover { background: #ffd040; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,186,0,0.25); }
-  .btn-process:active { transform: translateY(0); }
-
-  /* ── OUTPUT SECTION ── */
-  .output-wrap {
-    grid-column: 1 / -1;
-    animation: fadeUp 0.5s 0.2s ease both;
-  }
-
-  .output-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel);
-  }
-
-  .output-meta { display: flex; align-items: center; gap: 1rem; }
-
-  .line-count {
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-  }
-
-  .line-count span { color: var(--amber); }
-
-  .output-actions { display: flex; gap: 0.5rem; }
-
-  .btn-sm {
-    font-family: var(--body);
-    font-size: 0.62rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 0.35rem 0.85rem;
-    border-radius: 2px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .btn-sm:hover { border-color: var(--amber); color: var(--amber); }
-
-  .output-area {
-    padding: 1.25rem;
-    min-height: 180px;
-  }
-
-  .output-area textarea {
-    min-height: 160px;
-    font-size: 0.78rem;
-    color: var(--green);
-    line-height: 1.8;
-  }
-
-  /* ── EXPORT SELECT ── */
-  select.field-input {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5855'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    cursor: pointer;
-  }
-
-  select.field-input option { background: var(--surface); }
-
-  /* ── HOW IT WORKS ── */
-  .how-section {
-    grid-column: 1 / -1;
-    padding: 1.75rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
-    animation: fadeUp 0.5s 0.3s ease both;
-  }
-
-  .how-title {
-    font-size: 0.6rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .how-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.6rem;
-  }
-
-  .how-item {
-    font-size: 0.72rem;
-    color: var(--muted);
-    display: flex;
-    gap: 0.5rem;
-    align-items: flex-start;
-  }
-
-  .how-item::before {
-    content: '→';
-    color: var(--amber);
-    flex-shrink: 0;
-    margin-top: 0.02em;
-  }
-
-  /* ── NOTIFICATION ── */
-  .notif-container {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .notif {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 0.75rem 1rem;
-    font-size: 0.72rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-width: 240px;
-    animation: slideIn 0.25s ease;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  }
-
-  .notif.success { border-left: 3px solid var(--green); }
-  .notif.warning { border-left: 3px solid var(--amber); }
-  .notif.error   { border-left: 3px solid var(--red); }
-
-  .notif-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .notif.success .notif-dot { background: var(--green); }
-  .notif.warning .notif-dot { background: var(--amber); }
-  .notif.error   .notif-dot { background: var(--red); }
-
-  /* ── COMPARISON ── */
-  .compare-wrap {
-    grid-column: 1 / -1;
-    display: none;
-    animation: fadeUp 0.4s ease both;
-  }
-
-  .compare-wrap.show { display: block; }
-
-  .compare-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    padding: 1.25rem;
-  }
-
-  .compare-panel { background: var(--panel); border-radius: 4px; padding: 1rem; }
-  .compare-label { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
-
-  .compare-panel pre {
-    font-size: 0.72rem;
-    color: var(--text);
-    line-height: 1.7;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
-    font-size: 0.65rem;
-    color: var(--muted);
-    letter-spacing: 0.12em;
-    animation: fadeUp 0.5s 0.4s ease both;
-  }
-
-  footer a { color: var(--amber); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-
-  /* ── ANIMATIONS ── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-
-  @keyframes fadeOut {
-    from { opacity: 1; transform: translateX(0); }
-    to   { opacity: 0; transform: translateX(20px); }
-  }
-
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 900px) {
-    .main { grid-template-columns: 1fr; }
-    .output-wrap, .compare-wrap, .how-section, footer { grid-column: 1; }
-    .compare-grid { grid-template-columns: 1fr; }
-    .header-stats { display: none; }
-  }
-
-  .sender-preview {
-    font-size: 0.65rem;
-    color: var(--muted);
-    margin-top: 0.3rem;
-  }
-
-  .sender-preview span { color: var(--amber); }
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0d0f12;
+  --surface:  #12151a;
+  --panel:    #171b22;
+  --border:   rgba(255,255,255,0.07);
+  --amber:    #ffba00;
+  --amber-d:  rgba(255,186,0,0.12);
+  --amber-g:  rgba(255,186,0,0.06);
+  --red:      #ff4d4d;
+  --green:    #3ddc84;
+  --text:     #dde2ec;
+  --muted:    #525966;
+  --muted2:   #2e333d;
+  --mono:     'Space Mono', monospace;
+  --display:  'Bebas Neue', sans-serif;
+  --body:     'DM Mono', monospace;
+}
+
+/* ── BASE ── Body is the iframe root — no vh, no fixed ── */
+html, body {
+  font-family: var(--body);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  overflow-x: hidden;
+}
+
+/* subtle grid bg */
+body {
+  background-image:
+    linear-gradient(rgba(255,186,0,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,186,0,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 20px 24px;
+}
+
+/* ── HEADER ── */
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.brand { display: flex; flex-direction: column; gap: 3px; }
+
+.badge {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: var(--amber-d);
+  border: 1px solid rgba(255,186,0,0.2);
+  padding: 2px 8px;
+  border-radius: 2px;
+  width: fit-content;
+}
+
+.brand-name {
+  font-family: var(--display);
+  font-size: 42px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.brand-sub {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hdr-stats { display: flex; gap: 24px; align-items: flex-end; }
+
+.stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+
+.stat-n {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.stat-l {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── NOTIFICATION (inline, top of app) ── */
+#notifArea {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.notif {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 3px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  animation: fadeIn 0.2s ease;
+}
+
+.notif.success { border-left: 3px solid var(--green); }
+.notif.warning { border-left: 3px solid var(--amber); }
+.notif.error   { border-left: 3px solid var(--red); }
+
+.nd { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.notif.success .nd { background: var(--green); }
+.notif.warning .nd { background: var(--amber); }
+.notif.error   .nd { background: var(--red); }
+
+/* ── MAIN GRID ── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 14px;
+  align-items: start;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.ph {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.pt {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pb { padding: 14px; }
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  font-family: var(--body);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+.tc { display: none; }
+.tc.active { display: block; }
+
+/* ── INPUT AREA ── */
+.ia {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+textarea, input[type="text"] {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 11.5px;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+}
+
+#inputHeaders { min-height: 260px; }
+textarea::placeholder, input::placeholder { color: var(--muted2); }
+
+/* ── DROP ZONE ── */
+.dz {
+  margin: 12px;
+  border: 1px dashed var(--muted2);
+  border-radius: 4px;
+  padding: 28px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dz:hover, .dz.over { border-color: var(--amber); background: var(--amber-g); }
+.dz-icon { font-size: 24px; margin-bottom: 8px; opacity: 0.5; }
+.dz p { font-size: 11px; color: var(--muted); }
+.dz span { color: var(--amber); }
+
+/* ── FILE LIST ── */
+.fl { max-height: 160px; overflow-y: auto; padding: 0 12px 12px; }
+
+.fi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.fr {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.fr:hover { color: var(--red); }
+
+/* ── FIELD ── */
+.field { margin-bottom: 14px; }
+
+.fl-label {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.fi-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 11.5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.fi-input:focus { border-color: var(--amber); }
+.fi-input::placeholder { color: var(--muted2); }
+textarea.fi-input { min-height: 62px; resize: vertical; line-height: 1.6; }
+
+select.fi-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23525966'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+
+select.fi-input option { background: var(--panel); }
+
+/* ── QUICK TAGS ── */
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+
+.tag {
+  font-size: 9px;
+  padding: 2px 7px;
+  border: 1px solid var(--muted2);
+  border-radius: 2px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  background: none;
+  font-family: var(--body);
+  letter-spacing: 0.04em;
+}
+
+.tag:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-g); }
+
+/* ── SENDER ROW ── */
+.sender-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+}
+
+.sender-row input {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 11.5px;
+  flex: 1;
+  outline: none;
+  min-width: 0;
+}
+
+.sat { color: var(--muted); font-size: 12px; }
+
+.sprev {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.sprev span { color: var(--amber); }
+
+/* ── TOGGLE ── */
+.trow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.tgl {
+  width: 30px;
+  height: 16px;
+  background: var(--muted2);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.tgl.on { background: var(--amber); }
+
+.tgl::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  background: var(--bg);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.tgl.on::after { transform: translateX(14px); }
+
+/* ── CHECKBOXES ── */
+.checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.ci {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 10px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.ci:hover { color: var(--text); border-color: var(--muted2); }
+.ci.on { border-color: rgba(255,186,0,0.25); color: var(--text); background: var(--amber-g); }
+.ci.danger.on { border-color: rgba(255,77,77,0.3); background: rgba(255,77,77,0.05); }
+
+.cb {
+  width: 12px; height: 12px;
+  border: 1px solid var(--muted2);
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 8px;
+  transition: all 0.12s;
+}
+
+.ci.on .cb { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+.ci.danger.on .cb { background: var(--red); border-color: var(--red); }
+
+/* ── DIVIDER ── */
+hr.div {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 12px 0;
+}
+
+/* ── PROCESS BTN ── */
+.btn-go {
+  width: 100%;
+  background: var(--amber);
+  color: #0d0f12;
+  border: none;
+  border-radius: 3px;
+  padding: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-go:hover { background: #ffd040; box-shadow: 0 4px 16px rgba(255,186,0,0.2); }
+
+/* ── SMALL BTNS ── */
+.btn-row { display: flex; gap: 5px; margin-top: 6px; }
+
+.btn-s {
+  flex: 1;
+  font-family: var(--body);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.btn-s:hover { border-color: var(--amber); color: var(--amber); }
+
+/* ── OUTPUT ── */
+.out-full { grid-column: 1 / -1; }
+
+.out-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.lc { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.lc span { color: var(--amber); }
+
+#outputHeaders {
+  width: 100%;
+  min-height: 120px;
+  background: transparent;
+  border: none;
+  color: var(--green);
+  font-family: var(--body);
+  font-size: 11.5px;
+  line-height: 1.8;
+  resize: vertical;
+  outline: none;
+  padding: 12px 14px;
+}
+
+/* ── COMPARE ── */
+.cmp-full { grid-column: 1 / -1; display: none; }
+.cmp-full.show { display: block; }
+
+.cmp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+.cp {
+  background: var(--panel);
+  border-radius: 3px;
+  padding: 10px;
+}
+
+.cp-lbl { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.cp pre { font-size: 10px; color: var(--text); line-height: 1.7; white-space: pre-wrap; word-break: break-all; }
+
+/* ── HOW IT WORKS ── */
+.how-full { grid-column: 1 / -1; }
+.how-full .pb { padding: 12px 14px; }
+
+.how-g {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.hw {
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  gap: 5px;
+  align-items: flex-start;
+}
+
+.hw::before { content: '→'; color: var(--amber); flex-shrink: 0; }
+
+/* ── FOOTER ── */
+.foot {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+
+.foot a { color: var(--amber); text-decoration: none; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+/* ── ANIM ── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  .main { grid-template-columns: 1fr; }
+  .out-full, .cmp-full, .how-full, .foot { grid-column: 1; }
+  .hdr-stats { display: none; }
+  .how-g { grid-template-columns: 1fr 1fr; }
+  .cmp-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+<div class="app">
 
-<div class="wrap">
-  <div style="display:grid; gap:1.5rem;">
-
-    <!-- HEADER -->
-    <header>
-      <div class="brand">
-        <span class="brand-badge">● Email Utility</span>
-        <div class="brand-name">CMH1</div>
-        <div class="brand-sub">Clean and modify email headers with precision</div>
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="brand">
+      <span class="badge">● Email Utility</span>
+      <div class="brand-name">CMH1</div>
+      <div class="brand-sub">Clean and modify email headers with precision</div>
+    </div>
+    <div class="hdr-stats">
+      <div class="stat">
+        <div class="stat-n" id="sP">0</div>
+        <div class="stat-l">Processed</div>
       </div>
-      <div class="header-stats">
-        <div class="stat">
-          <div class="stat-num" id="statProcessed">0</div>
-          <div class="stat-label">Processed</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num" id="statFiles">0</div>
-          <div class="stat-label">Files</div>
-        </div>
-        <div class="stat">
-          <div class="stat-num" id="statTime">—</div>
-          <div class="stat-label">Last Run</div>
+      <div class="stat">
+        <div class="stat-n" id="sF">0</div>
+        <div class="stat-l">Files</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n" id="sT">—</div>
+        <div class="stat-l">Last Run</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION AREA (inline, not fixed) -->
+  <div id="notifArea"></div>
+
+  <!-- MAIN GRID -->
+  <div class="main">
+
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" onclick="swTab('paste',this)">Paste</button>
+        <button class="tab" onclick="swTab('upload',this)">Upload</button>
+      </div>
+
+      <div id="paste-tab" class="tc active">
+        <div class="ia">
+          <textarea id="inputHeaders" placeholder="Paste email headers here..."></textarea>
         </div>
       </div>
-    </header>
 
-    <!-- MAIN GRID -->
-    <div class="main">
+      <div id="upload-tab" class="tc">
+        <div class="dz" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">⬆</div>
+          <p><span>Click to browse</span> or drag files here</p>
+          <p style="margin-top:4px;font-size:9px;opacity:.5">.eml · .txt · .msg</p>
+        </div>
+        <input type="file" id="fileInput" accept=".eml,.txt,.msg" multiple style="display:none">
+        <div class="fl" id="fileList"></div>
+      </div>
+    </div>
 
-      <!-- LEFT: INPUT -->
-      <div class="panel" style="animation-delay:0.05s">
-        <div class="tabs">
-          <button class="tab active" onclick="switchTab('paste', this)">Paste</button>
-          <button class="tab" onclick="switchTab('upload', this)">Upload</button>
+    <!-- OPTIONS PANEL -->
+    <div class="panel">
+      <div class="ph"><span class="pt">Options</span></div>
+      <div class="pb">
+
+        <!-- From Domain -->
+        <div class="field">
+          <label class="fl-label">From domain replacement</label>
+          <input type="text" id="domainReplacement" class="fi-input" placeholder="e.g. example.com or [P_RPATH]">
+          <div class="tags">
+            <button class="tag" onclick="sv('domainReplacement','[P_RPATH]')">[P_RPATH]</button>
+            <button class="tag" onclick="sv('domainReplacement','[RDNS]')">[RDNS]</button>
+            <button class="tag" onclick="sv('domainReplacement','[RP]')">[RP]</button>
+          </div>
+          <div class="fl-label" style="margin-top:4px;font-size:8px">Leave empty to use [P_FROM]</div>
         </div>
 
-        <div id="paste-tab" class="tab-content active">
-          <div class="input-area">
-            <textarea id="inputHeaders" placeholder="Paste email headers here..."></textarea>
+        <!-- Message-ID Tag -->
+        <div class="field">
+          <label class="fl-label">Message-ID Tag</label>
+          <input type="text" id="messageIdTag" class="fi-input" value="[EID]">
+          <div class="tags">
+            <button class="tag" onclick="sv('messageIdTag','[EID]')">[EID]</button>
+            <button class="tag" onclick="sv('messageIdTag','')">(none)</button>
           </div>
         </div>
 
-        <div id="upload-tab" class="tab-content">
-          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-            <div class="drop-icon">⬆</div>
-            <p><span>Click to browse</span> or drag files here</p>
-            <p style="margin-top:0.4rem; font-size:0.65rem; opacity:0.5">.eml · .txt · .msg</p>
+        <!-- Sender Header -->
+        <div class="field">
+          <div class="trow">
+            <span class="fl-label" style="margin:0">Sender Header</span>
+            <div class="tgl on" id="senderToggle" onclick="tglSender(this)"></div>
           </div>
-          <input type="file" id="fileInput" accept=".eml,.txt,.msg" multiple style="display:none">
-          <div class="file-list" id="fileList"></div>
-        </div>
-      </div>
-
-      <!-- RIGHT: SETTINGS -->
-      <div class="panel settings-panel">
-        <div class="panel-head">
-          <span class="panel-title">Options</span>
-        </div>
-        <div class="panel-body">
-
-          <!-- Domain Replacement -->
-          <div class="field">
-            <label class="field-label">From domain replacement</label>
-            <input type="text" id="domainReplacement" class="field-input" placeholder="e.g. example.com or [P_RPATH]">
+          <div id="senderSec">
+            <div class="sender-row">
+              <input type="text" id="sU" value="adobe" placeholder="user">
+              <span class="sat">@</span>
+              <input type="text" id="sD" value="[RDNS]" placeholder="domain">
+            </div>
             <div class="tags">
-              <button class="tag" onclick="setVal('domainReplacement','[P_RPATH]')">[P_RPATH]</button>
-              <button class="tag" onclick="setVal('domainReplacement','[RDNS]')">[RDNS]</button>
-              <button class="tag" onclick="setVal('domainReplacement','[RP]')">[RP]</button>
+              <button class="tag" onclick="sv('sD','[RDNS]')">[RDNS]</button>
+              <button class="tag" onclick="sv('sD','[P_RPATH]')">[P_RPATH]</button>
+              <button class="tag" onclick="sv('sD','[RP]')">[RP]</button>
             </div>
-            <div class="field-label" style="margin-top:0.4rem; font-size:0.58rem;">Leave empty to use [P_FROM]</div>
+            <div class="sprev" id="sPrev">+ Sender: &lt;<span>adobe@[RDNS]</span>&gt;</div>
           </div>
+        </div>
 
-          <!-- Message-ID Tag -->
-          <div class="field">
-            <label class="field-label">Message-ID Tag</label>
-            <input type="text" id="messageIdTag" class="field-input" value="[EID]" placeholder="[EID]">
-            <div class="tags" style="margin-top:0.45rem;">
-              <button class="tag" onclick="setVal('messageIdTag','[EID]')">[EID]</button>
-              <button class="tag" onclick="setVal('messageIdTag','')">(none)</button>
-            </div>
+        <!-- Custom Headers -->
+        <div class="field">
+          <label class="fl-label">Custom Headers (Key:Value)</label>
+          <textarea id="customHeaders" class="fi-input" placeholder="X-Custom-Header: Value&#10;X-Another: Value"></textarea>
+        </div>
+
+        <hr class="div">
+
+        <!-- Checkboxes -->
+        <div class="checks">
+          <div class="ci on" onclick="tc2(this,'chDate')">
+            <input type="checkbox" id="chDate" checked style="display:none">
+            <div class="cb">✓</div><span>Date → [DATE]</span>
           </div>
-
-          <!-- Sender Header -->
-          <div class="field">
-            <div class="toggle-row">
-              <span class="field-label" style="margin:0">Sender Header</span>
-              <div class="toggle on" id="senderToggle" onclick="toggleEl(this)"></div>
-            </div>
-            <div id="senderSection" style="margin-top:0.6rem">
-              <div class="sender-row">
-                <input type="text" id="senderUser" value="adobe" placeholder="user">
-                <span class="sender-at">@</span>
-                <input type="text" id="senderDomain" value="[RDNS]" placeholder="domain">
-              </div>
-              <div class="tags">
-                <button class="tag" onclick="setVal('senderDomain','[RDNS]')">[RDNS]</button>
-                <button class="tag" onclick="setVal('senderDomain','[P_RPATH]')">[P_RPATH]</button>
-                <button class="tag" onclick="setVal('senderDomain','[RP]')">[RP]</button>
-              </div>
-              <div class="sender-preview" id="senderPreview">+ Sender: &lt;<span>adobe@[RDNS]</span>&gt;</div>
-            </div>
+          <div class="ci on" onclick="tc2(this,'chTo')">
+            <input type="checkbox" id="chTo" checked style="display:none">
+            <div class="cb">✓</div><span>To → [*to]</span>
           </div>
-
-          <!-- Custom Headers -->
-          <div class="field">
-            <label class="field-label">Custom Headers (Key:Value)</label>
-            <textarea id="customHeaders" class="field-input" placeholder="X-Custom-Header: Value&#10;X-Another: Value"></textarea>
+          <div class="ci on" onclick="tc2(this,'chRcv')">
+            <input type="checkbox" id="chRcv" checked style="display:none">
+            <div class="cb">✓</div><span>Keep Received:</span>
           </div>
-
-          <hr class="divider">
-
-          <!-- Checkboxes -->
-          <div class="checks">
-            <div class="check-item checked" onclick="toggleCheck(this,'replaceDateCheckbox')">
-              <input type="checkbox" id="replaceDateCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>Date → [DATE]</span>
-            </div>
-            <div class="check-item checked" onclick="toggleCheck(this,'replaceToCheckbox')">
-              <input type="checkbox" id="replaceToCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>To → [*to]</span>
-            </div>
-            <div class="check-item checked" onclick="toggleCheck(this,'keepReceivedCheckbox')">
-              <input type="checkbox" id="keepReceivedCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>Keep Received:</span>
-            </div>
-            <div class="check-item checked" onclick="toggleCheck(this,'keepReplyToCheckbox')">
-              <input type="checkbox" id="keepReplyToCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>Keep Reply-To:</span>
-            </div>
-            <div class="check-item checked" onclick="toggleCheck(this,'addCcCheckbox')">
-              <input type="checkbox" id="addCcCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>Add Cc: [*to]</span>
-            </div>
-            <div class="check-item checked" onclick="toggleCheck(this,'extractBodyCheckbox')">
-              <input type="checkbox" id="extractBodyCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>Keep Body</span>
-            </div>
-            <div class="check-item" onclick="toggleCheck(this,'removeDuplicatesCheckbox')">
-              <input type="checkbox" id="removeDuplicatesCheckbox" style="display:none">
-              <div class="check-box"></div>
-              <span>Remove Dupes</span>
-            </div>
-            <div class="check-item checked danger" onclick="toggleCheck(this,'removeSecurityHeadersCheckbox')">
-              <input type="checkbox" id="removeSecurityHeadersCheckbox" checked style="display:none">
-              <div class="check-box">✓</div>
-              <span>Strip Security</span>
-            </div>
+          <div class="ci on" onclick="tc2(this,'chReply')">
+            <input type="checkbox" id="chReply" checked style="display:none">
+            <div class="cb">✓</div><span>Keep Reply-To:</span>
           </div>
-
-          <hr class="divider">
-
-          <!-- Export & Process -->
-          <div class="field">
-            <label class="field-label">Export Format</label>
-            <select id="exportFormat" class="field-input">
-              <option value="txt">Single File (.txt)</option>
-              <option value="sep">Merged with __SEP__ (.txt)</option>
-              <option value="zip">Separate Files (.zip)</option>
-              <option value="json">JSON (.json)</option>
-              <option value="csv">CSV (.csv)</option>
-            </select>
+          <div class="ci on" onclick="tc2(this,'chCc')">
+            <input type="checkbox" id="chCc" checked style="display:none">
+            <div class="cb">✓</div><span>Add Cc: [*to]</span>
           </div>
-
-          <button class="btn-process" onclick="processHeaders()">
-            Process Headers →
-          </button>
-
-          <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
-            <button class="btn-sm" style="flex:1" onclick="downloadOutput()">Download</button>
-            <button class="btn-sm" style="flex:1" onclick="showComparison()">Compare</button>
-            <button class="btn-sm" style="flex:1" onclick="clearAll()">Clear</button>
+          <div class="ci on" onclick="tc2(this,'chBody')">
+            <input type="checkbox" id="chBody" checked style="display:none">
+            <div class="cb">✓</div><span>Keep Body</span>
           </div>
+          <div class="ci" onclick="tc2(this,'chDupe')">
+            <input type="checkbox" id="chDupe" style="display:none">
+            <div class="cb"></div><span>Remove Dupes</span>
+          </div>
+          <div class="ci on danger" onclick="tc2(this,'chSec')">
+            <input type="checkbox" id="chSec" checked style="display:none">
+            <div class="cb">✓</div><span>Strip Security</span>
+          </div>
+        </div>
 
+        <hr class="div">
+
+        <!-- Export -->
+        <div class="field">
+          <label class="fl-label">Export Format</label>
+          <select id="exportFormat" class="fi-input">
+            <option value="txt">Single File (.txt)</option>
+            <option value="sep">Merged __SEP__ (.txt)</option>
+            <option value="zip">Separate Files (.zip)</option>
+            <option value="json">JSON (.json)</option>
+            <option value="csv">CSV (.csv)</option>
+          </select>
+        </div>
+
+        <button class="btn-go" onclick="processHeaders()">Process Headers →</button>
+
+        <div class="btn-row">
+          <button class="btn-s" onclick="downloadOutput()">Download</button>
+          <button class="btn-s" onclick="showCmp()">Compare</button>
+          <button class="btn-s" onclick="clearAll()">Clear</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="panel out-full">
+      <div class="out-head">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="pt">Processed Headers</span>
+          <span class="lc"><span id="lineCount">0</span> lines</span>
+        </div>
+        <button class="btn-s" style="flex:none" onclick="copyOut()">⎘ Copy</button>
+      </div>
+      <textarea id="outputHeaders" readonly placeholder="Processed headers will appear here..."></textarea>
+    </div>
+
+    <!-- COMPARE -->
+    <div class="panel cmp-full" id="cmpWrap">
+      <div class="ph">
+        <span class="pt">Before / After</span>
+        <button class="btn-s" style="flex:none" onclick="document.getElementById('cmpWrap').classList.remove('show')">✕ Close</button>
+      </div>
+      <div class="cmp-grid">
+        <div class="cp">
+          <div class="cp-lbl">⬅ Original</div>
+          <pre id="cmpBefore"></pre>
+        </div>
+        <div class="cp">
+          <div class="cp-lbl">➡ Processed</div>
+          <pre id="cmpAfter"></pre>
         </div>
       </div>
+    </div>
 
-      <!-- OUTPUT -->
-      <div class="panel output-wrap">
-        <div class="output-head">
-          <div class="output-meta">
-            <span class="panel-title">Processed Headers</span>
-            <span class="line-count"><span id="lineCount">0</span> lines</span>
-          </div>
-          <div class="output-actions">
-            <button class="btn-sm" onclick="copyToClipboard()">⎘ Copy</button>
-          </div>
-        </div>
-        <div class="output-area">
-          <textarea id="outputHeaders" readonly placeholder="Processed headers will appear here..."></textarea>
-        </div>
-      </div>
-
-      <!-- COMPARISON -->
-      <div class="panel compare-wrap" id="compareWrap">
-        <div class="panel-head">
-          <span class="panel-title">Before / After</span>
-          <button class="btn-sm" onclick="document.getElementById('compareWrap').classList.remove('show')">✕ Close</button>
-        </div>
-        <div class="compare-grid">
-          <div class="compare-panel">
-            <div class="compare-label">⬅ Original</div>
-            <pre id="comparisonBefore"></pre>
-          </div>
-          <div class="compare-panel">
-            <div class="compare-label">➡ Processed</div>
-            <pre id="comparisonAfter"></pre>
-          </div>
+    <!-- HOW IT WORKS -->
+    <div class="panel how-full">
+      <div class="ph"><span class="pt">How it works</span></div>
+      <div class="pb">
+        <div class="how-g">
+          <div class="hw">Replaces From domain with token or custom domain</div>
+          <div class="hw">Tags Message-ID with [EID] or custom tag</div>
+          <div class="hw">Injects Sender header after From field</div>
+          <div class="hw">Replaces Date and To with placeholders</div>
+          <div class="hw">Removes ARC, DKIM, SPF, Delivered-To headers</div>
+          <div class="hw">Strips original Message blocks</div>
         </div>
       </div>
+    </div>
 
-      <!-- HOW IT WORKS -->
-      <div class="how-section">
-        <div class="how-title">How it works</div>
-        <div class="how-grid">
-          <div class="how-item">Replaces From domain with token or custom domain</div>
-          <div class="how-item">Tags Message-ID with [EID] or custom tag</div>
-          <div class="how-item">Injects Sender: &lt;user@[RDNS]&gt; after From</div>
-          <div class="how-item">Replaces Date and To with placeholders</div>
-          <div class="how-item">Removes ARC, DKIM, SPF, Delivered-To headers</div>
-          <div class="how-item">Strips original Message blocks</div>
-        </div>
-      </div>
+    <!-- FOOTER -->
+    <div class="foot">
+RHATTOY AYOUB — CMH1 © 2026
+    </div>
 
-      <!-- FOOTER -->
-      <footer>
-        <span>RHATTOY AYOUB — CMH1 © 2026 </span>
-      </footer>
-
-    </div><!-- end .main -->
-  </div><!-- end grid -->
-</div><!-- end .wrap -->
-
-<!-- NOTIFICATION CONTAINER -->
-<div class="notif-container" id="notifContainer"></div>
+  </div><!-- end .main -->
+</div><!-- end .app -->
 
 <script>
 // ── STATE ──
-let uploadedFiles = [];
-let uploadedFilesContent = [];
-let processedFilesData = [];
-let processedCount = 0;
-let totalTime = 0;
-let originalHeaders = '';
-let processedHeaders = '';
-let senderEnabled = true;
-let jsZipLoaded = false;
+let uFiles = [], uContents = [], pFiles = [];
+let pCount = 0, totalT = 0;
+let origHdrs = '', procHdrs = '';
+let senderOn = true;
+let zipLoaded = false;
 
 // ── SENDER PREVIEW ──
-function updateSenderPreview() {
-  const u = document.getElementById('senderUser').value || 'user';
-  const d = document.getElementById('senderDomain').value || 'domain';
-  document.getElementById('senderPreview').innerHTML = `+ Sender: &lt;<span>${u}@${d}</span>&gt;`;
+function updPrev() {
+  const u = document.getElementById('sU').value || 'user';
+  const d = document.getElementById('sD').value || 'domain';
+  document.getElementById('sPrev').innerHTML = `+ Sender: &lt;<span>${u}@${d}</span>&gt;`;
 }
+document.getElementById('sU').addEventListener('input', updPrev);
+document.getElementById('sD').addEventListener('input', updPrev);
 
-document.getElementById('senderUser').addEventListener('input', updateSenderPreview);
-document.getElementById('senderDomain').addEventListener('input', updateSenderPreview);
-
-// ── TOGGLE SENDER ──
-function toggleEl(el) {
+// ── SENDER TOGGLE ──
+function tglSender(el) {
   el.classList.toggle('on');
-  senderEnabled = el.classList.contains('on');
-  document.getElementById('senderSection').style.opacity = senderEnabled ? '1' : '0.35';
-  document.getElementById('senderSection').style.pointerEvents = senderEnabled ? '' : 'none';
+  senderOn = el.classList.contains('on');
+  const sec = document.getElementById('senderSec');
+  sec.style.opacity = senderOn ? '1' : '0.35';
+  sec.style.pointerEvents = senderOn ? '' : 'none';
 }
 
-// ── QUICK TAGS ──
-function setVal(id, val) {
-  document.getElementById(id).value = val;
-  if (id === 'senderDomain' || id === 'senderUser') updateSenderPreview();
+// ── SET VALUE ──
+function sv(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+  if (id === 'sD' || id === 'sU') updPrev();
 }
 
-// ── CHECKBOX TOGGLE ──
-function toggleCheck(item, cbId) {
-  item.classList.toggle('checked');
-  const cb = document.getElementById(cbId);
-  cb.checked = item.classList.contains('checked');
-  item.querySelector('.check-box').textContent = cb.checked ? '✓' : '';
-}
-
-// ── TABS ──
-function switchTab(name, btn) {
+// ── TAB SWITCH ──
+function swTab(name, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById(name + '-tab').classList.add('active');
 }
 
+// ── CHECKBOX TOGGLE ──
+function tc2(item, cbId) {
+  item.classList.toggle('on');
+  const cb = document.getElementById(cbId);
+  cb.checked = item.classList.contains('on');
+  item.querySelector('.cb').textContent = cb.checked ? '✓' : '';
+}
+
 // ── DRAG & DROP ──
-const dropZone = document.getElementById('dropZone');
-
-['dragenter','dragover','dragleave','drop'].forEach(ev =>
-  dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); })
+const dz = document.getElementById('dropZone');
+['dragenter','dragover','dragleave','drop'].forEach(e =>
+  dz.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); })
 );
-
-['dragenter','dragover'].forEach(ev =>
-  dropZone.addEventListener(ev, () => dropZone.classList.add('dragover'))
-);
-
-['dragleave','drop'].forEach(ev =>
-  dropZone.addEventListener(ev, () => dropZone.classList.remove('dragover'))
-);
-
-dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+['dragenter','dragover'].forEach(e => dz.addEventListener(e, () => dz.classList.add('over')));
+['dragleave','drop'].forEach(e => dz.addEventListener(e, () => dz.classList.remove('over')));
+dz.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
 document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
 
 async function handleFiles(files) {
-  uploadedFiles = Array.from(files);
-  uploadedFilesContent = [];
-  for (const file of uploadedFiles) {
+  uFiles = Array.from(files);
+  uContents = [];
+  for (const f of uFiles) {
     try {
-      const content = await readFile(file);
-      uploadedFilesContent.push({ name: file.name, content, size: file.size });
-    } catch {
-      notify(`Error reading ${file.name}`, 'error');
-    }
+      const c = await readF(f);
+      uContents.push({ name: f.name, content: c, size: f.size });
+    } catch { notify('Error reading ' + f.name, 'error'); }
   }
-  renderFileList();
-  updateStats();
-  notify(`${uploadedFiles.length} file(s) loaded`, 'success');
+  renderFL();
+  updStats();
+  notify(`${uFiles.length} file(s) loaded`, 'success');
 }
 
-function readFile(file) {
+function readF(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = e => res(e.target.result);
@@ -1049,27 +878,25 @@ function readFile(file) {
   });
 }
 
-function renderFileList() {
-  const list = document.getElementById('fileList');
-  list.innerHTML = uploadedFilesContent.map((f, i) => `
-    <div class="file-item">
-      <span>📄 ${f.name} <span style="color:var(--muted);font-size:0.65rem">(${fmtSize(f.size)})</span></span>
-      <button class="file-remove" onclick="removeFile(${i})">×</button>
-    </div>
-  `).join('');
+function renderFL() {
+  document.getElementById('fileList').innerHTML = uContents.map((f, i) => `
+    <div class="fi">
+      <span>📄 ${f.name} <span style="color:var(--muted);font-size:9px">(${fmt(f.size)})</span></span>
+      <button class="fr" onclick="rmF(${i})">×</button>
+    </div>`).join('');
 }
 
-function removeFile(i) {
-  uploadedFiles.splice(i, 1);
-  uploadedFilesContent.splice(i, 1);
-  renderFileList();
-  updateStats();
+function rmF(i) {
+  uFiles.splice(i, 1);
+  uContents.splice(i, 1);
+  renderFL();
+  updStats();
 }
 
-function fmtSize(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  return (b/1048576).toFixed(1) + ' MB';
+function fmt(b) {
+  if (b < 1024) return b + 'B';
+  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
+  return (b/1048576).toFixed(1) + 'MB';
 }
 
 // ── PROCESS ──
@@ -1077,135 +904,112 @@ async function processHeaders() {
   const t0 = performance.now();
   const input = document.getElementById('inputHeaders').value;
 
-  if (!input && uploadedFilesContent.length === 0) {
-    notify('Add headers or upload files first', 'warning');
-    return;
-  }
+  if (!input && uContents.length === 0) { notify('Add headers or upload files', 'warning'); return; }
 
-  processedFilesData = [];
+  pFiles = [];
 
-  if (uploadedFilesContent.length > 0) {
+  if (uContents.length > 0) {
     const parts = [];
-    for (const f of uploadedFilesContent) {
-      const p = processText(f.content);
+    for (const f of uContents) {
+      const p = doProcess(f.content);
       parts.push(`\n=== ${f.name} ===\n${p}`);
-      processedFilesData.push({ name: f.name, content: p });
+      pFiles.push({ name: f.name, content: p });
     }
-    processedHeaders = parts.join('\n\n');
+    procHdrs = parts.join('\n\n');
   } else {
-    originalHeaders = input;
-    processedHeaders = processText(input);
-    processedFilesData.push({ name: 'processed_headers.txt', content: processedHeaders });
+    origHdrs = input;
+    procHdrs = doProcess(input);
+    pFiles.push({ name: 'processed_headers.txt', content: procHdrs });
   }
 
-  document.getElementById('outputHeaders').value = processedHeaders;
-  const lines = processedHeaders.split('\n').filter(l => l.trim()).length;
-  document.getElementById('lineCount').textContent = lines;
+  document.getElementById('outputHeaders').value = procHdrs;
+  const lc = procHdrs.split('\n').filter(l => l.trim()).length;
+  document.getElementById('lineCount').textContent = lc;
 
   const ms = ((performance.now() - t0) / 1000).toFixed(2);
-  processedCount++;
-  totalTime += parseFloat(ms);
-  updateStats(ms);
+  pCount++;
+  totalT += parseFloat(ms);
+  updStats(ms);
   notify('Headers processed ✓', 'success');
 }
 
-function processText(input) {
+function doProcess(input) {
   const lines = input.split('\n');
-  const domainReplacement = document.getElementById('domainReplacement').value;
-  const msgIdTag    = document.getElementById('messageIdTag').value;
-  const replaceDate = document.getElementById('replaceDateCheckbox').checked;
-  const replaceTo   = document.getElementById('replaceToCheckbox').checked;
-  const keepRecv    = document.getElementById('keepReceivedCheckbox').checked;
-  const keepReply   = document.getElementById('keepReplyToCheckbox').checked;
-  const addCc       = document.getElementById('addCcCheckbox').checked;
-  const extractBody = document.getElementById('extractBodyCheckbox').checked;
-  const customHdrs  = document.getElementById('customHeaders').value;
-  const removeSec   = document.getElementById('removeSecurityHeadersCheckbox').checked;
-  const senderUser  = document.getElementById('senderUser').value || 'adobe';
-  const senderDom   = document.getElementById('senderDomain').value || '[RDNS]';
+  const domR     = document.getElementById('domainReplacement').value;
+  const msgIdTag = document.getElementById('messageIdTag').value;
+  const repDate  = document.getElementById('chDate').checked;
+  const repTo    = document.getElementById('chTo').checked;
+  const keepRcv  = document.getElementById('chRcv').checked;
+  const keepRply = document.getElementById('chReply').checked;
+  const addCc    = document.getElementById('chCc').checked;
+  const keepBody = document.getElementById('chBody').checked;
+  const custHdrs = document.getElementById('customHeaders').value;
+  const remSec   = document.getElementById('chSec').checked;
+  const sU       = document.getElementById('sU').value || 'adobe';
+  const sD       = document.getElementById('sD').value || '[RDNS]';
 
-  const securityNames = removeSec ? [
+  const secNames = remSec ? [
     'Delivered-To','X-Received','X-Google-Smtp-Source','DKIM-Signature',
-    'Received-SPF','Return-Path','Authentication-Results','X-Google-DKIM-Signature','DMARC-Filter'
+    'Received-SPF','Return-Path','Authentication-Results',
+    'X-Google-DKIM-Signature','DMARC-Filter'
   ] : [];
 
-  let headers = [], currentHeader = null, bodyStart = -1, bodyContent = '';
+  let headers = [], cur = null, bodyStart = -1, bodyContent = '';
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-
     if (bodyStart === -1) {
       if (line.match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
-        if (currentHeader) headers.push(currentHeader);
+        if (cur) headers.push(cur);
         const ci = line.indexOf(':');
-        currentHeader = { name: line.substring(0, ci).trim(), fullLine: line };
-      } else if (currentHeader && line.match(/^\s+/)) {
-        currentHeader.fullLine += '\n' + line;
+        cur = { name: line.substring(0, ci).trim(), fullLine: line };
+      } else if (cur && line.match(/^\s+/)) {
+        cur.fullLine += '\n' + line;
       } else if (line.trim() === '') {
-        if (currentHeader) { headers.push(currentHeader); currentHeader = null; }
-        if (i + 1 < lines.length && !lines[i+1].match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
-          bodyStart = i + 1;
-        }
+        if (cur) { headers.push(cur); cur = null; }
+        if (i + 1 < lines.length && !lines[i+1].match(/^[A-Z][A-Za-z0-9-]*:\s*/)) bodyStart = i + 1;
       }
     } else {
       bodyContent += line + '\n';
     }
   }
+  if (cur && bodyStart === -1) headers.push(cur);
 
-  if (currentHeader && bodyStart === -1) headers.push(currentHeader);
-
-  let receivedHdrs = [], senderHdr = null, otherHdrs = [];
+  let rcv = [], senderHdr = null, other = [];
 
   for (let h of headers) {
     let line = h.fullLine;
-
-    if (removeSec) {
-      if (securityNames.includes(h.name) || h.name.startsWith('ARC-') || h.name.startsWith('X-Spam')) continue;
-      line = line.replace(/^\s+(dkim|spf|dmarc|bh|fh|[bg]|[hb]|dara|d=google\.com).*$/gm, '');
+    if (remSec) {
+      if (secNames.includes(h.name) || h.name.startsWith('ARC-') || h.name.startsWith('X-Spam')) continue;
+      line = line.replace(/^\s+(dkim|spf|dmarc|bh|fh|[bg]|dara|d=google\.com).*$/gm, '');
       line = line.replace(/^\s+[a-zA-Z0-9+/=]{40,}.*$/gm, '');
       line = line.trim().split('\n').filter(l => l.trim()).join('\n');
     }
-
-    if (h.name === 'Received') {
-      if (keepRecv) receivedHdrs.push(line);
-    } else if (h.name === 'Sender') {
-      senderHdr = line;
-    } else if (h.name === 'Reply-To') {
-      if (keepReply) otherHdrs.push(line);
-    } else {
-      if (h.name === 'From') {
-        const repl = domainReplacement || '[P_FROM]';
-        line = line.replace(/^(From:\s*.+?)@[\w\.-]+\.\w+/m, `$1@${repl}`);
-      }
-      if (h.name === 'Message-ID' && msgIdTag) {
-        line = line.replace(/Message-ID:\s*<(.+?)(@.+?)>/g, `Message-ID: <$1${msgIdTag}$2>`);
-      }
-      if (h.name === 'Date' && replaceDate) line = 'Date: [DATE]';
-      if (h.name === 'To' && replaceTo) line = 'To: [*to]';
-      otherHdrs.push(line);
+    if (h.name === 'Received') { if (keepRcv) rcv.push(line); }
+    else if (h.name === 'Sender') { senderHdr = line; }
+    else if (h.name === 'Reply-To') { if (keepRply) other.push(line); }
+    else {
+      if (h.name === 'From') line = line.replace(/^(From:\s*.+?)@[\w\.-]+\.\w+/m, `$1@${domR || '[P_FROM]'}`);
+      if (h.name === 'Message-ID' && msgIdTag) line = line.replace(/Message-ID:\s*<(.+?)(@.+?)>/g, `Message-ID: <$1${msgIdTag}$2>`);
+      if (h.name === 'Date' && repDate) line = 'Date: [DATE]';
+      if (h.name === 'To' && repTo) line = 'To: [*to]';
+      other.push(line);
     }
   }
 
-  let result = [...receivedHdrs];
+  let result = [...rcv];
 
-  // Inject Sender header after From if enabled
-  if (senderEnabled) {
-    const senderLine = `Sender: <${senderUser}@${senderDom}>`;
-    const fromIdx = otherHdrs.findIndex(l => l.startsWith('From:'));
-    if (fromIdx !== -1) {
-      otherHdrs.splice(fromIdx + 1, 0, senderLine);
-    } else {
-      result.push(senderLine);
-    }
+  if (senderOn) {
+    const si = other.findIndex(l => l.startsWith('From:'));
+    const sLine = `Sender: <${sU}@${sD}>`;
+    if (si !== -1) other.splice(si + 1, 0, sLine);
+    else result.push(sLine);
   } else if (senderHdr) {
     result.push(senderHdr);
   }
 
-  if (customHdrs) {
-    customHdrs.split('\n').filter(l => l.trim()).forEach(l => result.push(l));
-  }
-
-  result = result.concat(otherHdrs);
+  if (custHdrs) custHdrs.split('\n').filter(l => l.trim()).forEach(l => result.push(l));
+  result = result.concat(other);
 
   if (addCc && !result.some(l => l.startsWith('Cc:'))) {
     const si = result.findIndex(l => l.startsWith('Subject:'));
@@ -1214,25 +1018,25 @@ function processText(input) {
   }
 
   let out = result.join('\n').trim();
-  if (extractBody && bodyContent.trim()) out += '\n\n' + bodyContent.trim();
+  if (keepBody && bodyContent.trim()) out += '\n\n' + bodyContent.trim();
   return out;
 }
 
 // ── STATS ──
-function updateStats(lastTime) {
-  document.getElementById('statProcessed').textContent = processedCount;
-  document.getElementById('statFiles').textContent = uploadedFilesContent.length;
-  if (lastTime) document.getElementById('statTime').textContent = lastTime + 's';
+function updStats(t) {
+  document.getElementById('sP').textContent = pCount;
+  document.getElementById('sF').textContent = uContents.length;
+  if (t) document.getElementById('sT').textContent = t + 's';
 }
 
 // ── DOWNLOAD ──
-function loadJSZip() {
+function loadZip() {
   return new Promise((res, rej) => {
-    if (jsZipLoaded && typeof JSZip !== 'undefined') { res(); return; }
+    if (zipLoaded && typeof JSZip !== 'undefined') { res(); return; }
     const s = document.createElement('script');
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-    s.onload = () => { jsZipLoaded = true; res(); };
-    s.onerror = () => rej(new Error('JSZip load failed'));
+    s.onload = () => { zipLoaded = true; res(); };
+    s.onerror = () => rej(new Error('JSZip failed'));
     document.head.appendChild(s);
   });
 }
@@ -1240,16 +1044,24 @@ function loadJSZip() {
 async function downloadOutput() {
   const output = document.getElementById('outputHeaders').value;
   if (!output) { notify('Nothing to download', 'warning'); return; }
-  const fmt = document.getElementById('exportFormat').value;
+  const fmt2 = document.getElementById('exportFormat').value;
 
-  if (fmt === 'sep') {
-    const content = processedFilesData.map(f => f.content).join('\n__SEP__\n');
-    dl(content, 'headers_merged_sep.txt', 'text/plain');
-  } else if (fmt === 'zip') {
-    await dlZip();
-  } else if (fmt === 'json') {
+  if (fmt2 === 'sep') {
+    dl(pFiles.map(f => f.content).join('\n__SEP__\n'), 'headers_merged_sep.txt', 'text/plain');
+  } else if (fmt2 === 'zip') {
+    try {
+      await loadZip();
+      const zip = new JSZip();
+      for (const f of pFiles) {
+        let n = f.name.endsWith('.txt')||f.name.endsWith('.eml') ? f.name : f.name.replace(/\.[^/.]+$/,'') + '.txt';
+        zip.file(n, f.content);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      dl(blob, 'processed_headers.zip', 'application/zip');
+    } catch { notify('Error creating ZIP', 'error'); return; }
+  } else if (fmt2 === 'json') {
     dl(JSON.stringify({ headers: output.split('\n') }, null, 2), 'headers.json', 'application/json');
-  } else if (fmt === 'csv') {
+  } else if (fmt2 === 'csv') {
     dl('Header\n' + output.split('\n').map(l => `"${l}"`).join('\n'), 'headers.csv', 'text/csv');
   } else {
     dl(output, 'headers.txt', 'text/plain');
@@ -1259,68 +1071,46 @@ async function downloadOutput() {
 
 function dl(content, name, type) {
   const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([content], { type })),
+    href: URL.createObjectURL(new Blob([content instanceof Blob ? [content] : [content]], { type })),
     download: name
   });
+  if (content instanceof Blob) a.href = URL.createObjectURL(content);
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
-async function dlZip() {
-  try {
-    await loadJSZip();
-    const zip = new JSZip();
-    for (const f of processedFilesData) {
-      let name = f.name.endsWith('.txt') || f.name.endsWith('.eml') ? f.name : f.name.replace(/\.[^/.]+$/, '') + '.txt';
-      zip.file(name, f.content);
-    }
-    const blob = await zip.generateAsync({ type: 'blob' });
-    dl(blob, 'processed_headers.zip', 'application/zip');
-  } catch {
-    notify('Error creating ZIP', 'error');
-  }
+function copyOut() {
+  const v = document.getElementById('outputHeaders').value;
+  if (!v) { notify('Nothing to copy', 'warning'); return; }
+  navigator.clipboard.writeText(v).then(() => notify('Copied ✓', 'success'));
 }
 
-function copyToClipboard() {
-  const output = document.getElementById('outputHeaders').value;
-  if (!output) { notify('Nothing to copy', 'warning'); return; }
-  navigator.clipboard.writeText(output).then(() => notify('Copied to clipboard', 'success'));
+function showCmp() {
+  const out = document.getElementById('outputHeaders').value;
+  if (!out) { notify('Process headers first', 'warning'); return; }
+  document.getElementById('cmpBefore').textContent = document.getElementById('inputHeaders').value || '(uploaded files)';
+  document.getElementById('cmpAfter').textContent = out;
+  document.getElementById('cmpWrap').classList.add('show');
 }
 
-// ── COMPARISON ──
-function showComparison() {
-  const output = document.getElementById('outputHeaders').value;
-  if (!output) { notify('Process headers first', 'warning'); return; }
-  const input = document.getElementById('inputHeaders').value;
-  document.getElementById('comparisonBefore').textContent = input || '(uploaded files)';
-  document.getElementById('comparisonAfter').textContent = output;
-  document.getElementById('compareWrap').classList.add('show');
-  document.getElementById('compareWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// ── CLEAR ──
 function clearAll() {
   document.getElementById('inputHeaders').value = '';
   document.getElementById('outputHeaders').value = '';
   document.getElementById('lineCount').textContent = '0';
-  uploadedFiles = [];
-  uploadedFilesContent = [];
-  processedFilesData = [];
-  renderFileList();
-  document.getElementById('compareWrap').classList.remove('show');
+  uFiles = []; uContents = []; pFiles = [];
+  renderFL();
+  document.getElementById('cmpWrap').classList.remove('show');
   notify('Cleared', 'success');
 }
 
-// ── NOTIFY ──
+// ── NOTIFY (inline) ──
 function notify(msg, type = 'success') {
+  const area = document.getElementById('notifArea');
   const n = document.createElement('div');
   n.className = `notif ${type}`;
-  n.innerHTML = `<div class="notif-dot"></div><span>${msg}</span>`;
-  document.getElementById('notifContainer').appendChild(n);
-  setTimeout(() => {
-    n.style.animation = 'fadeOut 0.25s ease forwards';
-    setTimeout(() => n.remove(), 250);
-  }, 3000);
+  n.innerHTML = `<div class="nd"></div><span>${msg}</span>`;
+  area.appendChild(n);
+  setTimeout(() => { n.style.opacity = '0'; n.style.transition = 'opacity 0.3s'; setTimeout(() => n.remove(), 300); }, 2800);
 }
 </script>
 </body>
