@@ -1,1515 +1,1327 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CMH-1 Pro - Ultimate Email Headers Processor (FIXED)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #1a1b26;
-            --bg-secondary: #1a1b26;
-            --bg-tertiary: #1a1b26;
-            --accent-purple: #a855f7;
-            --accent-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --border-color: rgba(168, 85, 247, 0.2);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --gradient-main: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
-            --gradient-card: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-            --shadow-lg: 0 10px 40px rgba(168, 85, 247, 0.3);
-            --shadow-glow: 0 0 30px rgba(168, 85, 247, 0.5);
-        }
-
-        [data-theme="light"] {
-            --bg-primary: #f8fafc;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #f1f5f9;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --border-color: rgba(168, 85, 247, 0.3);
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 40px rgba(168, 85, 247, 0.2);
-            --shadow-glow: 0 0 30px rgba(168, 85, 247, 0.3);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'JetBrains Mono', monospace;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
-            animation: gradientMove 20s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-            will-change: transform;
-        }
-
-        @keyframes gradientMove {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-3%, -3%); }
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 2rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-            animation: slideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .logo {
-            width: 80px;
-            height: 80px;
-            background: var(--gradient-main);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            font-weight: 900;
-            color: white;
-            box-shadow: var(--shadow-glow);
-            animation: pulse 3s ease-in-out infinite;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .logo::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
-            animation: shine 4s infinite;
-            will-change: transform;
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%); }
-            100% { transform: translateX(100%) translateY(100%); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-        }
-
-        h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3.5rem;
-            font-weight: 900;
-            background: var(--gradient-main);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-            letter-spacing: -2px;
-        }
-
-        .subtitle {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 2rem;
-            right: 2rem;
-            z-index: 1000;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            border-radius: 50px;
-            padding: 0.5rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .theme-toggle:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .theme-toggle svg {
-            width: 20px;
-            height: 20px;
-            fill: var(--text-primary);
-            transition: transform 0.3s ease;
-        }
-
-        .theme-toggle:hover svg {
-            transform: rotate(20deg);
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .card {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            animation: fadeIn 0.6s ease-out backwards;
-            will-change: transform;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--gradient-main);
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--accent-purple);
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card:nth-child(1) { animation-delay: 0.05s; }
-        .card:nth-child(2) { animation-delay: 0.1s; }
-        .card:nth-child(3) { animation-delay: 0.15s; }
-        .card:nth-child(4) { animation-delay: 0.2s; }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--gradient-card);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .card-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .drop-zone {
-            border: 3px dashed var(--border-color);
-            border-radius: 15px;
-            padding: 3rem 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: var(--bg-tertiary);
-            position: relative;
-        }
-
-        .drop-zone:hover,
-        .drop-zone.dragover {
-            border-color: var(--accent-purple);
-            background: var(--gradient-card);
-            transform: scale(1.02);
-        }
-
-        .drop-zone-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.7;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        input[type="text"],
-        input[type="file"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 0.8rem 1.2rem;
-            background: var(--bg-tertiary);
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-        }
-
-        input[type="text"]:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
-        }
-
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-            font-size: 0.85rem;
-        }
-
-        .checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.8rem;
-            background: var(--bg-tertiary);
-            border-radius: 10px;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .checkbox-item:hover {
-            border-color: var(--accent-purple);
-            background: var(--gradient-card);
-        }
-
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            accent-color: var(--accent-purple);
-        }
-
-        .checkbox-label {
-            cursor: pointer;
-            font-size: 0.9rem;
-            user-select: none;
-        }
-
-        .btn {
-            padding: 1rem 2.5rem;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 600;
-            font-size: 1rem;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-primary {
-            background: var(--gradient-main);
-            color: white;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-glow);
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 2px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--accent-blue);
-            background: var(--gradient-card);
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-
-        .stat-card {
-            background: var(--gradient-card);
-            border: 2px solid var(--border-color);
-            border-radius: 15px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .stat-value {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 900;
-            background: var(--gradient-main);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 0.5rem;
-        }
-
-        .comparison-view {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .comparison-panel {
-            background: var(--bg-tertiary);
-            border-radius: 15px;
-            padding: 1.5rem;
-            border: 2px solid var(--border-color);
-        }
-
-        .comparison-panel h3 {
-            font-family: 'Orbitron', sans-serif;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .comparison-panel pre {
-            background: var(--bg-primary);
-            padding: 1rem;
-            border-radius: 10px;
-            overflow-x: auto;
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-
-        .notification {
-            position: fixed;
-            top: 6rem;
-            right: 2rem;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            box-shadow: var(--shadow-lg);
-            z-index: 1000;
-            animation: slideInRight 0.3s ease-out;
-            max-width: 400px;
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(500px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .notification.success { border-left: 5px solid var(--success); }
-        .notification.warning { border-left: 5px solid var(--warning); }
-        .notification.error { border-left: 5px solid var(--danger); }
-
-        .regex-builder {
-            background: var(--bg-tertiary);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-top: 1rem;
-        }
-
-        .regex-pattern {
-            font-family: 'JetBrains Mono', monospace;
-            background: var(--bg-primary);
-            padding: 1rem;
-            border-radius: 10px;
-            border: 2px solid var(--accent-cyan);
-            font-size: 0.9rem;
-            color: var(--accent-cyan);
-            margin-top: 1rem;
-        }
-
-        .file-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 1rem;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.8rem;
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .file-item:hover {
-            border-color: var(--accent-purple);
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-
-        .file-icon {
-            font-size: 1.5rem;
-        }
-
-        .remove-file {
-            background: var(--danger);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .remove-file:hover {
-            transform: scale(1.05);
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: var(--bg-tertiary);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 1rem 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--gradient-main);
-            transition: width 0.3s ease;
-            animation: progressShine 1.5s infinite;
-        }
-
-        @keyframes progressShine {
-            0% { opacity: 0.8; }
-            50% { opacity: 1; }
-            100% { opacity: 0.8; }
-        }
-
-        .footer {
-            text-align: center;
-            padding: 2rem;
-            margin-top: 4rem;
-            border-top: 2px solid var(--border-color);
-        }
-
-        .footer a {
-            color: var(--accent-purple);
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .footer a:hover {
-            color: var(--accent-blue);
-        }
-
-        .tab-container {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .tab {
-            padding: 1rem 2rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 600;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .tab:hover {
-            color: var(--text-primary);
-        }
-
-        .tab.active {
-            color: var(--accent-purple);
-        }
-
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--gradient-main);
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: scaleX(0);
-            }
-            to {
-                transform: scaleX(1);
-            }
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @media (max-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .comparison-view {
-                grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 2.5rem;
-            }
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-tertiary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--gradient-main);
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-purple);
-        }
-
-        .fix-badge {
-            background: var(--success);
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            margin-left: 0.5rem;
-            animation: pulse 2s infinite;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMH1 — Email Header Processor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0e0f;
+    --surface:   #141618;
+    --panel:     #191b1e;
+    --border:    rgba(255,255,255,0.06);
+    --border-hi: rgba(255,186,0,0.4);
+    --amber:     #ffba00;
+    --amber-dim: rgba(255,186,0,0.15);
+    --amber-glow:rgba(255,186,0,0.08);
+    --red:       #ff4545;
+    --green:     #39d98a;
+    --text:      #e8e6e0;
+    --muted:     #5a5855;
+    --muted2:    #3a3835;
+    --mono:      'Space Mono', monospace;
+    --display:   'Bebas Neue', sans-serif;
+    --body:      'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Ambient light */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -30%;
+    right: -20%;
+    width: 60vw;
+    height: 60vw;
+    background: radial-gradient(circle, rgba(255,186,0,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 2.5rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 3rem;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .brand { display: flex; flex-direction: column; gap: 0.3rem; }
+
+  .brand-badge {
+    font-family: var(--body);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    text-transform: uppercase;
+    background: var(--amber-dim);
+    padding: 0.2rem 0.7rem;
+    border-radius: 2px;
+    display: inline-block;
+    width: fit-content;
+    border: 1px solid rgba(255,186,0,0.25);
+  }
+
+  .brand-name {
+    font-family: var(--display);
+    font-size: clamp(3rem, 6vw, 5rem);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .brand-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-end;
+    padding-bottom: 0.25rem;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+  }
+
+  .stat-num {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--amber);
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    background: var(--amber-dim);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+  }
+
+  .panel-body { padding: 1.25rem; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    font-family: var(--body);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.25rem;
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--amber);
+    border-bottom-color: var(--amber);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── TEXTAREA ── */
+  textarea, input[type="text"] {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 0.8rem;
+    line-height: 1.7;
+    resize: none;
+    outline: none;
+  }
+
+  .input-area {
+    padding: 1.25rem;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  textarea { flex: 1; min-height: 280px; }
+  textarea::placeholder { color: var(--muted2); }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    margin: 1.25rem;
+    border: 1px dashed var(--muted2);
+    border-radius: 4px;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--amber);
+    background: var(--amber-glow);
+  }
+
+  .drop-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+  }
+
+  .drop-zone p { font-size: 0.75rem; color: var(--muted); }
+  .drop-zone span { color: var(--amber); }
+
+  /* ── FILE LIST ── */
+  .file-list { max-height: 200px; overflow-y: auto; padding: 0 1.25rem 1.25rem; }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .file-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+
+  .file-remove:hover { color: var(--red); }
+
+  /* ── SETTINGS PANEL ── */
+  .settings-panel { animation-delay: 0.1s; }
+
+  /* ── FIELD ── */
+  .field { margin-bottom: 1.25rem; }
+
+  .field-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.55rem 0.85rem;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 0.78rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field-input:focus { border-color: var(--amber); }
+  .field-input::placeholder { color: var(--muted2); }
+
+  textarea.field-input { min-height: 70px; resize: vertical; line-height: 1.6; }
+
+  /* ── QUICK TAGS ── */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+  }
+
+  .tag {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--muted2);
+    border-radius: 2px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: none;
+    font-family: var(--body);
+  }
+
+  .tag:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+
+  /* ── SENDER ROW ── */
+  .sender-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .sender-row input {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 0.78rem;
+    flex: 1;
+    outline: none;
+  }
+
+  .sender-at { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── TOGGLE ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+
+  .toggle-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+  .toggle {
+    width: 32px;
+    height: 17px;
+    background: var(--muted2);
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle.on { background: var(--amber); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 13px; height: 13px;
+    background: var(--bg);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .toggle.on::after { transform: translateX(15px); }
+
+  /* ── CHECKBOXES ── */
+  .checks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+
+  .check-item:hover { border-color: var(--muted2); color: var(--text); }
+  .check-item.checked { border-color: rgba(255,186,0,0.3); color: var(--text); background: var(--amber-glow); }
+  .check-item.danger.checked { border-color: rgba(255,69,69,0.3); background: rgba(255,69,69,0.06); }
+
+  .check-box {
+    width: 13px; height: 13px;
+    border: 1px solid var(--muted2);
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.55rem;
+    transition: all 0.15s;
+  }
+
+  .check-item.checked .check-box { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+  .check-item.danger.checked .check-box { background: var(--red); border-color: var(--red); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+  }
+
+  /* ── PROCESS BTN ── */
+  .btn-process {
+    width: 100%;
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    border-radius: 3px;
+    padding: 0.85rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-process::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.2s;
+  }
+
+  .btn-process:hover { background: #ffd040; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,186,0,0.25); }
+  .btn-process:active { transform: translateY(0); }
+
+  /* ── OUTPUT SECTION ── */
+  .output-wrap {
+    grid-column: 1 / -1;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .output-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .output-meta { display: flex; align-items: center; gap: 1rem; }
+
+  .line-count {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .line-count span { color: var(--amber); }
+
+  .output-actions { display: flex; gap: 0.5rem; }
+
+  .btn-sm {
+    font-family: var(--body);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.85rem;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-sm:hover { border-color: var(--amber); color: var(--amber); }
+
+  .output-area {
+    padding: 1.25rem;
+    min-height: 180px;
+  }
+
+  .output-area textarea {
+    min-height: 160px;
+    font-size: 0.78rem;
+    color: var(--green);
+    line-height: 1.8;
+  }
+
+  /* ── EXPORT SELECT ── */
+  select.field-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5855'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    cursor: pointer;
+  }
+
+  select.field-input option { background: var(--surface); }
+
+  /* ── HOW IT WORKS ── */
+  .how-section {
+    grid-column: 1 / -1;
+    padding: 1.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  .how-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .how-item {
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .how-item::before {
+    content: '→';
+    color: var(--amber);
+    flex-shrink: 0;
+    margin-top: 0.02em;
+  }
+
+  /* ── NOTIFICATION ── */
+  .notif-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .notif {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 240px;
+    animation: slideIn 0.25s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .notif.success { border-left: 3px solid var(--green); }
+  .notif.warning { border-left: 3px solid var(--amber); }
+  .notif.error   { border-left: 3px solid var(--red); }
+
+  .notif-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .notif.success .notif-dot { background: var(--green); }
+  .notif.warning .notif-dot { background: var(--amber); }
+  .notif.error   .notif-dot { background: var(--red); }
+
+  /* ── COMPARISON ── */
+  .compare-wrap {
+    grid-column: 1 / -1;
+    display: none;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .compare-wrap.show { display: block; }
+
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .compare-panel { background: var(--panel); border-radius: 4px; padding: 1rem; }
+  .compare-label { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+
+  .compare-panel pre {
+    font-size: 0.72rem;
+    color: var(--text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    animation: fadeUp 0.5s 0.4s ease both;
+  }
+
+  footer a { color: var(--amber); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(20px); }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .output-wrap, .compare-wrap, .how-section, footer { grid-column: 1; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .header-stats { display: none; }
+  }
+
+  .sender-preview {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.3rem;
+  }
+
+  .sender-preview span { color: var(--amber); }
+</style>
 </head>
-<body data-theme="dark">
-    <div class="theme-toggle" onclick="toggleTheme()">
-        <svg id="themeIcon" viewBox="0 0 24 24">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-        <span id="themeText">Dark</span>
+<body>
+
+<div class="wrap">
+  <div style="display:grid; gap:1.5rem;">
+
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <span class="brand-badge">● Email Utility</span>
+        <div class="brand-name">CMH1</div>
+        <div class="brand-sub">Clean and modify email headers with precision</div>
+      </div>
+      <div class="header-stats">
+        <div class="stat">
+          <div class="stat-num" id="statProcessed">0</div>
+          <div class="stat-label">Processed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="statFiles">0</div>
+          <div class="stat-label">Files</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="statTime">—</div>
+          <div class="stat-label">Last Run</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN GRID -->
+    <div class="main">
+
+      <!-- LEFT: INPUT -->
+      <div class="panel" style="animation-delay:0.05s">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('paste', this)">Paste</button>
+          <button class="tab" onclick="switchTab('upload', this)">Upload</button>
+        </div>
+
+        <div id="paste-tab" class="tab-content active">
+          <div class="input-area">
+            <textarea id="inputHeaders" placeholder="Paste email headers here..."></textarea>
+          </div>
+        </div>
+
+        <div id="upload-tab" class="tab-content">
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="drop-icon">⬆</div>
+            <p><span>Click to browse</span> or drag files here</p>
+            <p style="margin-top:0.4rem; font-size:0.65rem; opacity:0.5">.eml · .txt · .msg</p>
+          </div>
+          <input type="file" id="fileInput" accept=".eml,.txt,.msg" multiple style="display:none">
+          <div class="file-list" id="fileList"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: SETTINGS -->
+      <div class="panel settings-panel">
+        <div class="panel-head">
+          <span class="panel-title">Options</span>
+        </div>
+        <div class="panel-body">
+
+          <!-- Domain Replacement -->
+          <div class="field">
+            <label class="field-label">From domain replacement</label>
+            <input type="text" id="domainReplacement" class="field-input" placeholder="e.g. example.com or [P_RPATH]">
+            <div class="tags">
+              <button class="tag" onclick="setVal('domainReplacement','[P_RPATH]')">[P_RPATH]</button>
+              <button class="tag" onclick="setVal('domainReplacement','[RDNS]')">[RDNS]</button>
+              <button class="tag" onclick="setVal('domainReplacement','[RP]')">[RP]</button>
+            </div>
+            <div class="field-label" style="margin-top:0.4rem; font-size:0.58rem;">Leave empty to use [P_FROM]</div>
+          </div>
+
+          <!-- Message-ID Tag -->
+          <div class="field">
+            <label class="field-label">Message-ID Tag</label>
+            <input type="text" id="messageIdTag" class="field-input" value="[EID]" placeholder="[EID]">
+            <div class="tags" style="margin-top:0.45rem;">
+              <button class="tag" onclick="setVal('messageIdTag','[EID]')">[EID]</button>
+              <button class="tag" onclick="setVal('messageIdTag','')">(none)</button>
+            </div>
+          </div>
+
+          <!-- Sender Header -->
+          <div class="field">
+            <div class="toggle-row">
+              <span class="field-label" style="margin:0">Sender Header</span>
+              <div class="toggle on" id="senderToggle" onclick="toggleEl(this)"></div>
+            </div>
+            <div id="senderSection" style="margin-top:0.6rem">
+              <div class="sender-row">
+                <input type="text" id="senderUser" value="adobe" placeholder="user">
+                <span class="sender-at">@</span>
+                <input type="text" id="senderDomain" value="[RDNS]" placeholder="domain">
+              </div>
+              <div class="tags">
+                <button class="tag" onclick="setVal('senderDomain','[RDNS]')">[RDNS]</button>
+                <button class="tag" onclick="setVal('senderDomain','[P_RPATH]')">[P_RPATH]</button>
+                <button class="tag" onclick="setVal('senderDomain','[RP]')">[RP]</button>
+              </div>
+              <div class="sender-preview" id="senderPreview">+ Sender: &lt;<span>adobe@[RDNS]</span>&gt;</div>
+            </div>
+          </div>
+
+          <!-- Custom Headers -->
+          <div class="field">
+            <label class="field-label">Custom Headers (Key:Value)</label>
+            <textarea id="customHeaders" class="field-input" placeholder="X-Custom-Header: Value&#10;X-Another: Value"></textarea>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Checkboxes -->
+          <div class="checks">
+            <div class="check-item checked" onclick="toggleCheck(this,'replaceDateCheckbox')">
+              <input type="checkbox" id="replaceDateCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>Date → [DATE]</span>
+            </div>
+            <div class="check-item checked" onclick="toggleCheck(this,'replaceToCheckbox')">
+              <input type="checkbox" id="replaceToCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>To → [*to]</span>
+            </div>
+            <div class="check-item checked" onclick="toggleCheck(this,'keepReceivedCheckbox')">
+              <input type="checkbox" id="keepReceivedCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>Keep Received:</span>
+            </div>
+            <div class="check-item checked" onclick="toggleCheck(this,'keepReplyToCheckbox')">
+              <input type="checkbox" id="keepReplyToCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>Keep Reply-To:</span>
+            </div>
+            <div class="check-item checked" onclick="toggleCheck(this,'addCcCheckbox')">
+              <input type="checkbox" id="addCcCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>Add Cc: [*to]</span>
+            </div>
+            <div class="check-item checked" onclick="toggleCheck(this,'extractBodyCheckbox')">
+              <input type="checkbox" id="extractBodyCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>Keep Body</span>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this,'removeDuplicatesCheckbox')">
+              <input type="checkbox" id="removeDuplicatesCheckbox" style="display:none">
+              <div class="check-box"></div>
+              <span>Remove Dupes</span>
+            </div>
+            <div class="check-item checked danger" onclick="toggleCheck(this,'removeSecurityHeadersCheckbox')">
+              <input type="checkbox" id="removeSecurityHeadersCheckbox" checked style="display:none">
+              <div class="check-box">✓</div>
+              <span>Strip Security</span>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Export & Process -->
+          <div class="field">
+            <label class="field-label">Export Format</label>
+            <select id="exportFormat" class="field-input">
+              <option value="txt">Single File (.txt)</option>
+              <option value="sep">Merged with __SEP__ (.txt)</option>
+              <option value="zip">Separate Files (.zip)</option>
+              <option value="json">JSON (.json)</option>
+              <option value="csv">CSV (.csv)</option>
+            </select>
+          </div>
+
+          <button class="btn-process" onclick="processHeaders()">
+            Process Headers →
+          </button>
+
+          <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
+            <button class="btn-sm" style="flex:1" onclick="downloadOutput()">Download</button>
+            <button class="btn-sm" style="flex:1" onclick="showComparison()">Compare</button>
+            <button class="btn-sm" style="flex:1" onclick="clearAll()">Clear</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="panel output-wrap">
+        <div class="output-head">
+          <div class="output-meta">
+            <span class="panel-title">Processed Headers</span>
+            <span class="line-count"><span id="lineCount">0</span> lines</span>
+          </div>
+          <div class="output-actions">
+            <button class="btn-sm" onclick="copyToClipboard()">⎘ Copy</button>
+          </div>
+        </div>
+        <div class="output-area">
+          <textarea id="outputHeaders" readonly placeholder="Processed headers will appear here..."></textarea>
+        </div>
+      </div>
+
+      <!-- COMPARISON -->
+      <div class="panel compare-wrap" id="compareWrap">
+        <div class="panel-head">
+          <span class="panel-title">Before / After</span>
+          <button class="btn-sm" onclick="document.getElementById('compareWrap').classList.remove('show')">✕ Close</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-panel">
+            <div class="compare-label">⬅ Original</div>
+            <pre id="comparisonBefore"></pre>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-label">➡ Processed</div>
+            <pre id="comparisonAfter"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div class="how-section">
+        <div class="how-title">How it works</div>
+        <div class="how-grid">
+          <div class="how-item">Replaces From domain with token or custom domain</div>
+          <div class="how-item">Tags Message-ID with [EID] or custom tag</div>
+          <div class="how-item">Injects Sender: &lt;user@[RDNS]&gt; after From</div>
+          <div class="how-item">Replaces Date and To with placeholders</div>
+          <div class="how-item">Removes ARC, DKIM, SPF, Delivered-To headers</div>
+          <div class="how-item">Strips original Message blocks</div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <footer>
+        <span>RHATTOY AYOUB — CMH1 © 2026 </span>
+      </footer>
+
+    </div><!-- end .main -->
+  </div><!-- end grid -->
+</div><!-- end .wrap -->
+
+<!-- NOTIFICATION CONTAINER -->
+<div class="notif-container" id="notifContainer"></div>
+
+<script>
+// ── STATE ──
+let uploadedFiles = [];
+let uploadedFilesContent = [];
+let processedFilesData = [];
+let processedCount = 0;
+let totalTime = 0;
+let originalHeaders = '';
+let processedHeaders = '';
+let senderEnabled = true;
+let jsZipLoaded = false;
+
+// ── SENDER PREVIEW ──
+function updateSenderPreview() {
+  const u = document.getElementById('senderUser').value || 'user';
+  const d = document.getElementById('senderDomain').value || 'domain';
+  document.getElementById('senderPreview').innerHTML = `+ Sender: &lt;<span>${u}@${d}</span>&gt;`;
+}
+
+document.getElementById('senderUser').addEventListener('input', updateSenderPreview);
+document.getElementById('senderDomain').addEventListener('input', updateSenderPreview);
+
+// ── TOGGLE SENDER ──
+function toggleEl(el) {
+  el.classList.toggle('on');
+  senderEnabled = el.classList.contains('on');
+  document.getElementById('senderSection').style.opacity = senderEnabled ? '1' : '0.35';
+  document.getElementById('senderSection').style.pointerEvents = senderEnabled ? '' : 'none';
+}
+
+// ── QUICK TAGS ──
+function setVal(id, val) {
+  document.getElementById(id).value = val;
+  if (id === 'senderDomain' || id === 'senderUser') updateSenderPreview();
+}
+
+// ── CHECKBOX TOGGLE ──
+function toggleCheck(item, cbId) {
+  item.classList.toggle('checked');
+  const cb = document.getElementById(cbId);
+  cb.checked = item.classList.contains('checked');
+  item.querySelector('.check-box').textContent = cb.checked ? '✓' : '';
+}
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(name + '-tab').classList.add('active');
+}
+
+// ── DRAG & DROP ──
+const dropZone = document.getElementById('dropZone');
+
+['dragenter','dragover','dragleave','drop'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); })
+);
+
+['dragenter','dragover'].forEach(ev =>
+  dropZone.addEventListener(ev, () => dropZone.classList.add('dragover'))
+);
+
+['dragleave','drop'].forEach(ev =>
+  dropZone.addEventListener(ev, () => dropZone.classList.remove('dragover'))
+);
+
+dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+
+async function handleFiles(files) {
+  uploadedFiles = Array.from(files);
+  uploadedFilesContent = [];
+  for (const file of uploadedFiles) {
+    try {
+      const content = await readFile(file);
+      uploadedFilesContent.push({ name: file.name, content, size: file.size });
+    } catch {
+      notify(`Error reading ${file.name}`, 'error');
+    }
+  }
+  renderFileList();
+  updateStats();
+  notify(`${uploadedFiles.length} file(s) loaded`, 'success');
+}
+
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsText(file);
+  });
+}
+
+function renderFileList() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = uploadedFilesContent.map((f, i) => `
+    <div class="file-item">
+      <span>📄 ${f.name} <span style="color:var(--muted);font-size:0.65rem">(${fmtSize(f.size)})</span></span>
+      <button class="file-remove" onclick="removeFile(${i})">×</button>
     </div>
+  `).join('');
+}
 
-    <div class="container">
-        <header>
-            <div class="logo-container">
-                <div class="logo">C1</div>
-            </div>
-            <h1>CMH-1 Tool</h1>
-            <p class="subtitle">Ultimate Email Headers Processing Tool</p>
-        </header>
+function removeFile(i) {
+  uploadedFiles.splice(i, 1);
+  uploadedFilesContent.splice(i, 1);
+  renderFileList();
+  updateStats();
+}
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="totalProcessed">0</div>
-                <div class="stat-label">Processed</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalFiles">0</div>
-                <div class="stat-label">Files Loaded</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="successRate">100%</div>
-                <div class="stat-label">Success Rate</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="processingTime">0s</div>
-                <div class="stat-label">Avg Time</div>
-            </div>
-        </div>
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
 
-        <div class="main-grid">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">📥</div>
-                    <h2 class="card-title">Input Headers</h2>
-                </div>
+// ── PROCESS ──
+async function processHeaders() {
+  const t0 = performance.now();
+  const input = document.getElementById('inputHeaders').value;
 
-                <div class="tab-container">
-                    <button class="tab active" onclick="switchTab('paste')">Paste</button>
-                    <button class="tab" onclick="switchTab('upload')">Upload</button>
-                </div>
+  if (!input && uploadedFilesContent.length === 0) {
+    notify('Add headers or upload files first', 'warning');
+    return;
+  }
 
-                <div id="paste-tab" class="tab-content active">
-                    <textarea id="inputHeaders" placeholder="Paste email headers here..."></textarea>
-                </div>
+  processedFilesData = [];
 
-                <div id="upload-tab" class="tab-content">
-                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                        <div class="drop-zone-icon">📄</div>
-                        <h3>Drop files here or click to browse</h3>
-                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Supports .eml, .txt, .msg files</p>
-                    </div>
-                    <input type="file" id="fileInput" accept=".eml,.txt,.msg" multiple style="display: none;">
-                    <div class="file-list" id="fileList"></div>
-                </div>
-            </div>
+  if (uploadedFilesContent.length > 0) {
+    const parts = [];
+    for (const f of uploadedFilesContent) {
+      const p = processText(f.content);
+      parts.push(`\n=== ${f.name} ===\n${p}`);
+      processedFilesData.push({ name: f.name, content: p });
+    }
+    processedHeaders = parts.join('\n\n');
+  } else {
+    originalHeaders = input;
+    processedHeaders = processText(input);
+    processedFilesData.push({ name: 'processed_headers.txt', content: processedHeaders });
+  }
 
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-icon">⚙️</div>
-                    <h2 class="card-title">Processing Options</h2>
-                </div>
+  document.getElementById('outputHeaders').value = processedHeaders;
+  const lines = processedHeaders.split('\n').filter(l => l.trim()).length;
+  document.getElementById('lineCount').textContent = lines;
 
-                <div class="input-group">
-                    <label>Domain Replacement</label>
-                    <input type="text" id="domainReplacement" placeholder="Leave empty to use [P_FROM]">
-                </div>
+  const ms = ((performance.now() - t0) / 1000).toFixed(2);
+  processedCount++;
+  totalTime += parseFloat(ms);
+  updateStats(ms);
+  notify('Headers processed ✓', 'success');
+}
 
-                <div class="input-group">
-                    <label>Custom Headers (Key:Value, one per line)</label>
-                    <textarea id="customHeaders" placeholder="X-Custom-Header: Value&#10;X-Another: AnotherValue" style="min-height: 80px;"></textarea>
-                </div>
+function processText(input) {
+  const lines = input.split('\n');
+  const domainReplacement = document.getElementById('domainReplacement').value;
+  const msgIdTag    = document.getElementById('messageIdTag').value;
+  const replaceDate = document.getElementById('replaceDateCheckbox').checked;
+  const replaceTo   = document.getElementById('replaceToCheckbox').checked;
+  const keepRecv    = document.getElementById('keepReceivedCheckbox').checked;
+  const keepReply   = document.getElementById('keepReplyToCheckbox').checked;
+  const addCc       = document.getElementById('addCcCheckbox').checked;
+  const extractBody = document.getElementById('extractBodyCheckbox').checked;
+  const customHdrs  = document.getElementById('customHeaders').value;
+  const removeSec   = document.getElementById('removeSecurityHeadersCheckbox').checked;
+  const senderUser  = document.getElementById('senderUser').value || 'adobe';
+  const senderDom   = document.getElementById('senderDomain').value || '[RDNS]';
 
-                <div class="input-group">
-                    <label>Message-ID Tag</label>
-                    <input type="text" id="messageIdTag" placeholder="Custom tag for Message-ID (e.g., [EID])">
-                </div>
+  const securityNames = removeSec ? [
+    'Delivered-To','X-Received','X-Google-Smtp-Source','DKIM-Signature',
+    'Received-SPF','Return-Path','Authentication-Results','X-Google-DKIM-Signature','DMARC-Filter'
+  ] : [];
 
-                <div class="checkbox-group">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="extractBodyCheckbox" checked>
-                        <label class="checkbox-label" for="extractBodyCheckbox">Extract Header + Body</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="replaceDateCheckbox" checked>
-                        <label class="checkbox-label" for="replaceDateCheckbox">Replace Date with [DATE]</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="replaceToCheckbox" checked>
-                        <label class="checkbox-label" for="replaceToCheckbox">Replace To with [*to]</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="keepReceivedCheckbox" checked>
-                        <label class="checkbox-label" for="keepReceivedCheckbox">Keep "Received" headers</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="keepReplyToCheckbox" checked>
-                        <label class="checkbox-label" for="keepReplyToCheckbox">Keep "Reply-To" headers</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="addCcCheckbox" checked>
-                        <label class="checkbox-label" for="addCcCheckbox">Add "Cc: [*to]" if missing</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="removeDuplicatesCheckbox">
-                        <label class="checkbox-label" for="removeDuplicatesCheckbox">Remove Duplicates</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="nameBySubjectCheckbox">
-                        <label class="checkbox-label" for="nameBySubjectCheckbox">Name files by Subject</label>
-                    </div>
-                    <div class="checkbox-item" style="border: 2px solid var(--danger);">
-                        <input type="checkbox" id="removeSecurityHeadersCheckbox" checked>
-                        <label class="checkbox-label" for="removeSecurityHeadersCheckbox">🗑️ Remove Security Headers</label>
-                    </div>
-                </div>
+  let headers = [], currentHeader = null, bodyStart = -1, bodyContent = '';
 
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="processHeaders()">
-                        <span style="position: relative; z-index: 1;">🚀 Process Headers</span>
-                    </button>
-                    <button class="btn btn-secondary" onclick="clearAll()">
-                        <span style="position: relative; z-index: 1;">🗑️ Clear</span>
-                    </button>
-                </div>
-            </div>
-        </div>
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
 
-        <div class="card" style="animation-delay: 0.6s;">
-            <div class="card-header">
-                <div class="card-icon">📤</div>
-                <h2 class="card-title">Processed Output</h2>
-            </div>
-
-            <div class="input-group">
-                <label>Export Format</label>
-                <select id="exportFormat">
-                    <option value="txt">Single File (.txt)</option>
-                    <option value="sep">Merged with __SEP__ (.txt)</option>
-                    <option value="zip">Separate Files (.zip)</option>
-                    <option value="json">JSON (.json)</option>
-                    <option value="csv">CSV (.csv)</option>
-                </select>
-            </div>
-
-            <textarea id="outputHeaders" readonly placeholder="Processed headers will appear here..."></textarea>
-
-            <div class="btn-group">
-                <button class="btn btn-primary" onclick="downloadOutput()">
-                    <span style="position: relative; z-index: 1;">💾 Download</span>
-                </button>
-                <button class="btn btn-secondary" onclick="copyToClipboard()">
-                    <span style="position: relative; z-index: 1;">📋 Copy</span>
-                </button>
-                <button class="btn btn-secondary" onclick="showComparison()">
-                    <span style="position: relative; z-index: 1;">🔍 Compare</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="comparisonSection" class="hidden">
-            <div class="card" style="animation-delay: 0.7s;">
-                <div class="card-header">
-                    <div class="card-icon">⚖️</div>
-                    <h2 class="card-title">Before & After Comparison</h2>
-                </div>
-                <div class="comparison-view">
-                    <div class="comparison-panel">
-                        <h3>⬅️ Original</h3>
-                        <pre id="comparisonBefore"></pre>
-                    </div>
-                    <div class="comparison-panel">
-                        <h3>➡️ Processed</h3>
-                        <pre id="comparisonAfter"></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <footer class="footer">
-            <p>Built with 💜 by <a href="https://t.me/ayoubrhattoy" target="_blank">@ayoubrhattoy</a></p>
-            <p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">CMH-1 | Ultimate Email Headers Processor</p>
-        </footer>
-    </div>
-
-    <script>
-        // Global State
-        let uploadedFiles = [];
-        let uploadedFilesContent = []; // ✅ NEW: Store file contents
-        let processedFilesData = []; // ✅ NEW: Store individually processed files for ZIP
-        let processedCount = 0;
-        let totalProcessingTime = 0;
-        let originalHeaders = '';
-        let processedHeaders = '';
-        let jsZipLoaded = false; // Track JSZip loading state
-
-        // ✅ Lazy load JSZip only when needed
-        function loadJSZip() {
-            return new Promise((resolve, reject) => {
-                if (jsZipLoaded && typeof JSZip !== 'undefined') {
-                    resolve();
-                    return;
-                }
-                
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-                script.onload = () => {
-                    jsZipLoaded = true;
-                    resolve();
-                };
-                script.onerror = () => reject(new Error('Failed to load JSZip'));
-                document.head.appendChild(script);
-            });
+    if (bodyStart === -1) {
+      if (line.match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
+        if (currentHeader) headers.push(currentHeader);
+        const ci = line.indexOf(':');
+        currentHeader = { name: line.substring(0, ci).trim(), fullLine: line };
+      } else if (currentHeader && line.match(/^\s+/)) {
+        currentHeader.fullLine += '\n' + line;
+      } else if (line.trim() === '') {
+        if (currentHeader) { headers.push(currentHeader); currentHeader = null; }
+        if (i + 1 < lines.length && !lines[i+1].match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
+          bodyStart = i + 1;
         }
+      }
+    } else {
+      bodyContent += line + '\n';
+    }
+  }
 
-        // Theme Toggle
-        function toggleTheme() {
-            const body = document.body;
-            const currentTheme = body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            body.setAttribute('data-theme', newTheme);
-            
-            const themeText = document.getElementById('themeText');
-            const themeIcon = document.getElementById('themeIcon');
-            
-            if (newTheme === 'light') {
-                themeText.textContent = 'Light';
-                themeIcon.innerHTML = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>';
-            } else {
-                themeText.textContent = 'Dark';
-                themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-            }
-        }
+  if (currentHeader && bodyStart === -1) headers.push(currentHeader);
 
-        // Tab Switching
-        function switchTab(tabName) {
-            const tabs = document.querySelectorAll('.tab');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            tabs.forEach(tab => tab.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName + '-tab').classList.add('active');
-        }
+  let receivedHdrs = [], senderHdr = null, otherHdrs = [];
 
-        // Drag and Drop
-        const dropZone = document.getElementById('dropZone');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
+  for (let h of headers) {
+    let line = h.fullLine;
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+    if (removeSec) {
+      if (securityNames.includes(h.name) || h.name.startsWith('ARC-') || h.name.startsWith('X-Spam')) continue;
+      line = line.replace(/^\s+(dkim|spf|dmarc|bh|fh|[bg]|[hb]|dara|d=google\.com).*$/gm, '');
+      line = line.replace(/^\s+[a-zA-Z0-9+/=]{40,}.*$/gm, '');
+      line = line.trim().split('\n').filter(l => l.trim()).join('\n');
+    }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-        });
+    if (h.name === 'Received') {
+      if (keepRecv) receivedHdrs.push(line);
+    } else if (h.name === 'Sender') {
+      senderHdr = line;
+    } else if (h.name === 'Reply-To') {
+      if (keepReply) otherHdrs.push(line);
+    } else {
+      if (h.name === 'From') {
+        const repl = domainReplacement || '[P_FROM]';
+        line = line.replace(/^(From:\s*.+?)@[\w\.-]+\.\w+/m, `$1@${repl}`);
+      }
+      if (h.name === 'Message-ID' && msgIdTag) {
+        line = line.replace(/Message-ID:\s*<(.+?)(@.+?)>/g, `Message-ID: <$1${msgIdTag}$2>`);
+      }
+      if (h.name === 'Date' && replaceDate) line = 'Date: [DATE]';
+      if (h.name === 'To' && replaceTo) line = 'To: [*to]';
+      otherHdrs.push(line);
+    }
+  }
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-        });
+  let result = [...receivedHdrs];
 
-        dropZone.addEventListener('drop', handleDrop, false);
+  // Inject Sender header after From if enabled
+  if (senderEnabled) {
+    const senderLine = `Sender: <${senderUser}@${senderDom}>`;
+    const fromIdx = otherHdrs.findIndex(l => l.startsWith('From:'));
+    if (fromIdx !== -1) {
+      otherHdrs.splice(fromIdx + 1, 0, senderLine);
+    } else {
+      result.push(senderLine);
+    }
+  } else if (senderHdr) {
+    result.push(senderHdr);
+  }
 
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }
+  if (customHdrs) {
+    customHdrs.split('\n').filter(l => l.trim()).forEach(l => result.push(l));
+  }
 
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            handleFiles(e.target.files);
-        });
+  result = result.concat(otherHdrs);
 
-        // ✅ FIXED: Now reads file contents
-        async function handleFiles(files) {
-            uploadedFiles = Array.from(files);
-            uploadedFilesContent = [];
-            
-            for (let file of uploadedFiles) {
-                try {
-                    const content = await readFileContent(file);
-                    uploadedFilesContent.push({
-                        name: file.name,
-                        content: content,
-                        size: file.size
-                    });
-                } catch (error) {
-                    console.error('Error reading file:', file.name, error);
-                    showNotification(`Error reading ${file.name}`, 'error');
-                }
-            }
-            
-            updateFileList();
-            updateStats();
-            showNotification(`${uploadedFiles.length} file(s) loaded successfully!`, 'success');
-        }
+  if (addCc && !result.some(l => l.startsWith('Cc:'))) {
+    const si = result.findIndex(l => l.startsWith('Subject:'));
+    if (si !== -1) result.splice(si, 0, 'Cc: [*to]');
+    else result.push('Cc: [*to]');
+  }
 
-        // ✅ NEW: Function to read file content
-        function readFileContent(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsText(file);
-            });
-        }
+  let out = result.join('\n').trim();
+  if (extractBody && bodyContent.trim()) out += '\n\n' + bodyContent.trim();
+  return out;
+}
 
-        function updateFileList() {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-            
-            uploadedFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <div class="file-info">
-                        <span class="file-icon">📄</span>
-                        <span>${file.name}</span>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(${formatFileSize(file.size)})</span>
-                    </div>
-                    <button class="remove-file" onclick="removeFile(${index})">×</button>
-                `;
-                fileList.appendChild(fileItem);
-            });
-        }
+// ── STATS ──
+function updateStats(lastTime) {
+  document.getElementById('statProcessed').textContent = processedCount;
+  document.getElementById('statFiles').textContent = uploadedFilesContent.length;
+  if (lastTime) document.getElementById('statTime').textContent = lastTime + 's';
+}
 
-        function removeFile(index) {
-            uploadedFiles.splice(index, 1);
-            uploadedFilesContent.splice(index, 1);
-            updateFileList();
-            updateStats();
-        }
+// ── DOWNLOAD ──
+function loadJSZip() {
+  return new Promise((res, rej) => {
+    if (jsZipLoaded && typeof JSZip !== 'undefined') { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = () => { jsZipLoaded = true; res(); };
+    s.onerror = () => rej(new Error('JSZip load failed'));
+    document.head.appendChild(s);
+  });
+}
 
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
+async function downloadOutput() {
+  const output = document.getElementById('outputHeaders').value;
+  if (!output) { notify('Nothing to download', 'warning'); return; }
+  const fmt = document.getElementById('exportFormat').value;
 
-        // ✅ FIXED: Process Headers now handles uploaded files
-        async function processHeaders() {
-            const startTime = performance.now();
-            let input = document.getElementById('inputHeaders').value;
-            
-            // ✅ NEW: Check for uploaded files
-            if (!input && uploadedFilesContent.length === 0) {
-                showNotification('Please add headers or upload files!', 'warning');
-                return;
-            }
+  if (fmt === 'sep') {
+    const content = processedFilesData.map(f => f.content).join('\n__SEP__\n');
+    dl(content, 'headers_merged_sep.txt', 'text/plain');
+  } else if (fmt === 'zip') {
+    await dlZip();
+  } else if (fmt === 'json') {
+    dl(JSON.stringify({ headers: output.split('\n') }, null, 2), 'headers.json', 'application/json');
+  } else if (fmt === 'csv') {
+    dl('Header\n' + output.split('\n').map(l => `"${l}"`).join('\n'), 'headers.csv', 'text/csv');
+  } else {
+    dl(output, 'headers.txt', 'text/plain');
+  }
+  notify('Download started', 'success');
+}
 
-            // Reset processed files data
-            processedFilesData = [];
+function dl(content, name, type) {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([content], { type })),
+    download: name
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
-            // ✅ NEW: Process uploaded files if available
-            if (uploadedFilesContent.length > 0) {
-                let allProcessed = [];
-                for (let fileData of uploadedFilesContent) {
-                    const processed = processHeadersText(fileData.content);
-                    allProcessed.push(`\n=== ${fileData.name} ===\n${processed}`);
-                    
-                    // Store individual processed file
-                    processedFilesData.push({
-                        name: fileData.name,
-                        content: processed
-                    });
-                }
-                processedHeaders = allProcessed.join('\n\n');
-                document.getElementById('outputHeaders').value = processedHeaders;
-            } else {
-                // Process textarea input
-                originalHeaders = input;
-                processedHeaders = processHeadersText(input);
-                document.getElementById('outputHeaders').value = processedHeaders;
-                
-                // Store as single file
-                processedFilesData.push({
-                    name: 'processed_headers.txt',
-                    content: processedHeaders
-                });
-            }
-            
-            // Update stats
-            const endTime = performance.now();
-            const processingTime = ((endTime - startTime) / 1000).toFixed(2);
-            processedCount++;
-            totalProcessingTime += parseFloat(processingTime);
-            updateStats();
-            
-            showNotification('Headers processed successfully! 🎉', 'success');
-        }
+async function dlZip() {
+  try {
+    await loadJSZip();
+    const zip = new JSZip();
+    for (const f of processedFilesData) {
+      let name = f.name.endsWith('.txt') || f.name.endsWith('.eml') ? f.name : f.name.replace(/\.[^/.]+$/, '') + '.txt';
+      zip.file(name, f.content);
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    dl(blob, 'processed_headers.zip', 'application/zip');
+  } catch {
+    notify('Error creating ZIP', 'error');
+  }
+}
 
-        // ✅ NEW: Separate function for processing header text
-        function processHeadersText(input) {
-            let lines = input.split('\n');
-            
-            // Get processing options
-            const domainReplacement = document.getElementById('domainReplacement').value;
-            const messageIdTag = document.getElementById('messageIdTag').value;
-            const replaceDate = document.getElementById('replaceDateCheckbox').checked;
-            const replaceTo = document.getElementById('replaceToCheckbox').checked;
-            const keepReceived = document.getElementById('keepReceivedCheckbox').checked;
-            const keepReplyTo = document.getElementById('keepReplyToCheckbox').checked;
-            const addCc = document.getElementById('addCcCheckbox').checked;
-            const extractBody = document.getElementById('extractBodyCheckbox').checked;
-            const customHeaders = document.getElementById('customHeaders').value;
-            const removeSecurityHeaders = document.getElementById('removeSecurityHeadersCheckbox').checked;
-            
-            // Parse headers and body separately
-            let headers = [];
-            let currentHeader = null;
-            let bodyStartIndex = -1;
-            let bodyContent = '';
-            
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i];
-                
-                if (bodyStartIndex === -1) {
-                    if (line.match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
-                        if (currentHeader) {
-                            headers.push(currentHeader);
-                        }
-                        const colonIndex = line.indexOf(':');
-                        currentHeader = { 
-                            name: line.substring(0, colonIndex).trim(), 
-                            fullLine: line 
-                        };
-                    } else if (currentHeader && line.match(/^\s+/)) {
-                        currentHeader.fullLine += '\n' + line;
-                    } else if (line.trim() === '') {
-                        if (currentHeader) {
-                            headers.push(currentHeader);
-                            currentHeader = null;
-                        }
-                        if (i + 1 < lines.length && !lines[i + 1].match(/^[A-Z][A-Za-z0-9-]*:\s*/)) {
-                            bodyStartIndex = i + 1;
-                        }
-                    }
-                } else {
-                    bodyContent += line + '\n';
-                }
-            }
-            
-            if (currentHeader && bodyStartIndex === -1) {
-                headers.push(currentHeader);
-            }
-            
-            // Categorize and process headers
-            let receivedHeaders = [];
-            let senderHeader = null;
-            let otherHeaders = [];
-            let securityHeaderNames = removeSecurityHeaders ? [
-                'Delivered-To', 'X-Received', 'X-Google-Smtp-Source', 'DKIM-Signature',
-                'Received-SPF', 'Return-Path', 'Authentication-Results', 'X-Google-DKIM-Signature',
-                'DMARC-Filter'
-            ] : [];
-            
-            for (let header of headers) {
-                let line = header.fullLine;
-                
-                if (removeSecurityHeaders) {
-                    if (securityHeaderNames.includes(header.name) || 
-                        header.name.startsWith('ARC-') || 
-                        header.name.startsWith('X-Spam')) {
-                        continue;
-                    }
-                    
-                    line = line.replace(/^\s+(dkim|spf|dmarc|bh|fh|[bg]|[hb]|dara|d=google\.com).*$/gm, '');
-                    line = line.replace(/^\s+[a-zA-Z0-9+/=]{40,}.*$/gm, '');
-                    line = line.trim().split('\n').filter(l => l.trim()).join('\n');
-                }
-                
-                if (header.name === 'Received') {
-                    if (keepReceived) {
-                        receivedHeaders.push(line);
-                    }
-                } else if (header.name === 'Sender') {
-                    senderHeader = line;
-                } else if (header.name === 'Reply-To') {
-                    if (keepReplyTo) {
-                        otherHeaders.push(line);
-                    }
-                } else {
-                    if (header.name === 'From') {
-                        if (domainReplacement) {
-                            line = line.replace(/^(From:\s*.+?)@[\w\.-]+\.\w+/m, `$1@${domainReplacement}`);
-                        } else {
-                            line = line.replace(/^(From:\s*.+?)@[\w\.-]+\.\w+/m, '$1@[P_FROM]');
-                        }
-                    }
-                    
-                    if (header.name === 'Message-ID' && messageIdTag) {
-                        line = line.replace(/Message-ID:\s*<(.+?)(@.+?)>/g, `Message-ID: <$1${messageIdTag}$2>`);
-                    }
-                    
-                    if (header.name === 'Date' && replaceDate) {
-                        line = 'Date: [DATE]';
-                    }
-                    
-                    if (header.name === 'To' && replaceTo) {
-                        line = 'To: [*to]';
-                    }
-                    
-                    otherHeaders.push(line);
-                }
-            }
-            
-            // Build final output
-            let result = [];
-            result = result.concat(receivedHeaders);
-            
-            if (senderHeader) {
-                result.push(senderHeader);
-            }
-            
-            if (customHeaders) {
-                customHeaders.split('\n')
-                    .filter(line => line.trim())
-                    .forEach(line => result.push(line));
-            }
-            
-            result = result.concat(otherHeaders);
-            
-            if (addCc && !result.some(line => line.startsWith('Cc:'))) {
-                const subjectIndex = result.findIndex(line => line.startsWith('Subject:'));
-                if (subjectIndex !== -1) {
-                    result.splice(subjectIndex, 0, 'Cc: [*to]');
-                }
-            }
-            
-            let processed = result.join('\n').trim();
-            
-            if (extractBody && bodyContent.trim()) {
-                processed += '\n\n' + bodyContent.trim();
-            }
-            
-            return processed;
-        }
+function copyToClipboard() {
+  const output = document.getElementById('outputHeaders').value;
+  if (!output) { notify('Nothing to copy', 'warning'); return; }
+  navigator.clipboard.writeText(output).then(() => notify('Copied to clipboard', 'success'));
+}
 
-        // Update Stats
-        function updateStats() {
-            document.getElementById('totalProcessed').textContent = processedCount;
-            document.getElementById('totalFiles').textContent = uploadedFilesContent.length;
-            
-            const avgTime = processedCount > 0 ? (totalProcessingTime / processedCount).toFixed(2) : 0;
-            document.getElementById('processingTime').textContent = avgTime + 's';
-        }
+// ── COMPARISON ──
+function showComparison() {
+  const output = document.getElementById('outputHeaders').value;
+  if (!output) { notify('Process headers first', 'warning'); return; }
+  const input = document.getElementById('inputHeaders').value;
+  document.getElementById('comparisonBefore').textContent = input || '(uploaded files)';
+  document.getElementById('comparisonAfter').textContent = output;
+  document.getElementById('compareWrap').classList.add('show');
+  document.getElementById('compareWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
-        // Download Output
-        async function downloadOutput() {
-            const output = document.getElementById('outputHeaders').value;
-            if (!output) {
-                showNotification('Nothing to download!', 'warning');
-                return;
-            }
-            
-            const format = document.getElementById('exportFormat').value;
-            
-            // Handle different formats
-            if (format === 'sep') {
-                downloadWithSeparator();
-            } else if (format === 'zip') {
-                await downloadAsZip();
-            } else if (format === 'json') {
-                downloadAsJson();
-            } else if (format === 'csv') {
-                downloadAsCsv();
-            } else {
-                downloadAsTxt();
-            }
-        }
+// ── CLEAR ──
+function clearAll() {
+  document.getElementById('inputHeaders').value = '';
+  document.getElementById('outputHeaders').value = '';
+  document.getElementById('lineCount').textContent = '0';
+  uploadedFiles = [];
+  uploadedFilesContent = [];
+  processedFilesData = [];
+  renderFileList();
+  document.getElementById('compareWrap').classList.remove('show');
+  notify('Cleared', 'success');
+}
 
-        // Download as single TXT file
-        function downloadAsTxt() {
-            const output = document.getElementById('outputHeaders').value;
-            const blob = new Blob([output], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'headers.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification('Download started! 📥', 'success');
-        }
-
-        // Download merged with __SEP__ separator
-        function downloadWithSeparator() {
-            if (processedFilesData.length === 0) {
-                showNotification('No processed data available!', 'warning');
-                return;
-            }
-
-            let mergedContent = [];
-            for (let i = 0; i < processedFilesData.length; i++) {
-                mergedContent.push(processedFilesData[i].content);
-            }
-            
-            // Join with __SEP__
-            const content = mergedContent.join('\n__SEP__\n');
-            
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'headers_merged_sep.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification('Downloaded merged file with __SEP__! 📥', 'success');
-        }
-
-        // Download as ZIP with separate files
-        async function downloadAsZip() {
-            if (processedFilesData.length === 0) {
-                showNotification('No processed data available!', 'warning');
-                return;
-            }
-
-            try {
-                // ✅ Load JSZip only when needed
-                if (!jsZipLoaded) {
-                    showNotification('Loading ZIP library... ⏳', 'warning');
-                    await loadJSZip();
-                }
-
-                const zip = new JSZip();
-                
-                // Add each file to ZIP
-                for (let fileData of processedFilesData) {
-                    // Clean filename and add .txt extension if needed
-                    let filename = fileData.name;
-                    if (!filename.endsWith('.txt') && !filename.endsWith('.eml')) {
-                        filename = filename.replace(/\.[^/.]+$/, '') + '.txt';
-                    }
-                    
-                    zip.file(filename, fileData.content);
-                }
-                
-                // Generate ZIP file
-                const blob = await zip.generateAsync({ type: 'blob' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'processed_headers.zip';
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                showNotification(`Downloaded ZIP with ${processedFilesData.length} file(s)! 📦`, 'success');
-            } catch (error) {
-                console.error('Error creating ZIP:', error);
-                showNotification('Error creating ZIP file!', 'error');
-            }
-        }
-
-        // Download as JSON
-        function downloadAsJson() {
-            const output = document.getElementById('outputHeaders').value;
-            const content = JSON.stringify({ headers: output.split('\n') }, null, 2);
-            const blob = new Blob([content], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'headers.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification('Downloaded JSON! 📥', 'success');
-        }
-
-        // Download as CSV
-        function downloadAsCsv() {
-            const output = document.getElementById('outputHeaders').value;
-            const content = 'Header\n' + output.split('\n').map(line => `"${line}"`).join('\n');
-            const blob = new Blob([content], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'headers.csv';
-            a.click();
-            URL.revokeObjectURL(url);
-            showNotification('Downloaded CSV! 📥', 'success');
-        }
-
-        // Copy to Clipboard
-        function copyToClipboard() {
-            const output = document.getElementById('outputHeaders').value;
-            if (!output) {
-                showNotification('Nothing to copy!', 'warning');
-                return;
-            }
-            
-            navigator.clipboard.writeText(output).then(() => {
-                showNotification('Copied to clipboard! 📋', 'success');
-            });
-        }
-
-        // Show Comparison
-        function showComparison() {
-            const input = document.getElementById('inputHeaders').value;
-            const output = document.getElementById('outputHeaders').value;
-            
-            if (!output) {
-                showNotification('Process headers first to compare!', 'warning');
-                return;
-            }
-            
-            document.getElementById('comparisonSection').classList.remove('hidden');
-            document.getElementById('comparisonBefore').textContent = input || 'Uploaded files';
-            document.getElementById('comparisonAfter').textContent = output;
-            
-            document.getElementById('comparisonSection').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Clear All
-        function clearAll() {
-            document.getElementById('inputHeaders').value = '';
-            document.getElementById('outputHeaders').value = '';
-            uploadedFiles = [];
-            uploadedFilesContent = [];
-            processedFilesData = [];
-            updateFileList();
-            originalHeaders = '';
-            processedHeaders = '';
-            document.getElementById('comparisonSection').classList.add('hidden');
-            showNotification('Cleared all data!', 'success');
-        }
-
-        // Show Notification
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <strong>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'} ${type.toUpperCase()}</strong>
-                <p style="margin-top: 0.5rem;">${message}</p>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideInRight 0.3s ease-out reverse';
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            // Page loaded - ready to use
-            console.log('CMH-1 Pro loaded successfully! 🚀');
-        });
-    </script>
+// ── NOTIFY ──
+function notify(msg, type = 'success') {
+  const n = document.createElement('div');
+  n.className = `notif ${type}`;
+  n.innerHTML = `<div class="notif-dot"></div><span>${msg}</span>`;
+  document.getElementById('notifContainer').appendChild(n);
+  setTimeout(() => {
+    n.style.animation = 'fadeOut 0.25s ease forwards';
+    setTimeout(() => n.remove(), 250);
+  }, 3000);
+}
+</script>
 </body>
 </html>
