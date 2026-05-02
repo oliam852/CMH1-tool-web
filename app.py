@@ -177,9 +177,6 @@ h1, h2, h3 { font-family: 'Bebas Neue', sans-serif !important; color: var(--text
 svg, svg *, [data-testid="stExpanderToggleIcon"], .stExpanderIcon,
 [class*="Icon"], [class*="icon"], button svg, summary svg { font-family: inherit !important; }
 
-/* Expander summary text only (not the icon) */
-details summary p, details summary span { font-family: 'DM Mono', monospace !important; }
-
 /* INPUTS */
 .stTextInput input,
 .stNumberInput input,
@@ -269,10 +266,23 @@ details summary p, details summary span { font-family: 'DM Mono', monospace !imp
 .stNumberInput button { background: var(--panel) !important; border-color: var(--border) !important; color: var(--muted) !important; }
 .stNumberInput button:hover { color: var(--amber) !important; background: var(--amber-g) !important; }
 
-/* EXPANDER */
+/* EXPANDER - FIXED ERROR */
 .stExpander { background: var(--surface) !important; border: 1px solid var(--border) !important; border-radius: 4px !important; }
-.stExpander summary { font-family: 'DM Mono', monospace !important; font-size: 10px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; color: var(--muted) !important; background: var(--panel) !important; border-radius: 3px !important; padding: 8px 12px !important; }
+.stExpander summary { 
+    font-size: 10px !important; 
+    letter-spacing: 0.14em !important; 
+    text-transform: uppercase !important; 
+    color: var(--muted) !important; 
+    background: var(--panel) !important; 
+    border-radius: 3px !important; 
+    padding: 8px 12px !important; 
+}
+.stExpander summary p {
+    font-family: 'DM Mono', monospace !important;
+    margin: 0 !important;
+}
 .stExpander summary:hover { color: var(--text) !important; }
+.stExpander [data-testid="stExpanderToggleIcon"] { font-family: inherit !important; }
 
 /* ALERTS */
 [data-testid="stInfo"]    { background: rgba(255,186,0,0.06) !important; border: 1px solid rgba(255,186,0,0.2) !important; border-left: 3px solid var(--amber) !important; color: var(--text) !important; border-radius: 3px !important; }
