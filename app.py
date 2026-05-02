@@ -168,10 +168,17 @@ footer                     { display: none !important; }
 .stTabs [data-baseweb="tab-border"] { background: var(--border) !important; height: 1px !important; }
 
 /* TYPOGRAPHY */
-p, span, div, label { font-family: 'DM Mono', monospace !important; }
+p, label { font-family: 'DM Mono', monospace !important; }
 h1, h2, h3 { font-family: 'Bebas Neue', sans-serif !important; color: var(--text) !important; letter-spacing: 0.04em !important; }
 .stMarkdown p { color: var(--text) !important; font-size: 12px !important; font-family: 'DM Mono', monospace !important; }
 .stMarkdown h2 { font-family: 'Bebas Neue', sans-serif !important; font-size: 2.4rem !important; color: var(--text) !important; }
+
+/* FIX: prevent DM Mono from breaking SVG/icon fonts */
+svg, svg *, [data-testid="stExpanderToggleIcon"], .stExpanderIcon,
+[class*="Icon"], [class*="icon"], button svg, summary svg { font-family: inherit !important; }
+
+/* Expander summary text only (not the icon) */
+details summary p, details summary span { font-family: 'DM Mono', monospace !important; }
 
 /* INPUTS */
 .stTextInput input,
