@@ -103,6 +103,14 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap');
+@keyframes bgShift {
+  0%   { background-color: #0b0f1a; }
+  25%  { background-color: #0a1520; }
+  50%  { background-color: #0d1218; }
+  75%  { background-color: #0f0d1c; }
+  100% { background-color: #0b0f1a; }
+}
+
 
 :root {
     --bg:      #0d0f12;
