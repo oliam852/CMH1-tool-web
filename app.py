@@ -114,8 +114,8 @@ st.markdown("""
     --amber-g: rgba(255,186,0,0.06);
     --red:     #ff4d4d;
     --green:   #3ddc84;
-    --text:    #dde2ec;
-    --muted:   #525966;
+    --text:    #ffffff;
+    --muted:   #8a96a8;
     --muted2:  #2e333d;
 }
 
