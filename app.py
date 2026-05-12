@@ -120,11 +120,11 @@ st.markdown("""
 }
 
 .stApp {
-    background-color: var(--bg) !important;
+    animation: bgShift 14s ease-in-out infinite !important;
     background-image:
-        linear-gradient(rgba(255,186,0,0.012) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,186,0,0.012) 1px, transparent 1px);
-    background-size: 40px 40px;
+        linear-gradient(rgba(255,186,0,0.013) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,186,0,0.013) 1px, transparent 1px) !important;
+    background-size: 40px 40px !important;
     font-family: 'DM Mono', monospace !important;
 }
 
