@@ -731,7 +731,7 @@ with tab2:
                                             if mod_content_type and custom_content_type:
                                                 head_lines = set_header_lines(head_lines, 'Content-Type', custom_content_type)
                                             
-                                            # [تعديل] - معالجة الـ Body (التبديل + حذف السطور الفارغة)
+                                            # معالجة الـ Body (التبديل + حذف السطور الفارغة)
                                             if (rep_body_dom or rm_empty) and body:
                                                 is_qp = any('quoted-printable' in h.lower() for h in head_lines if 'content-transfer-encoding' in h.lower())
                                                 
@@ -750,10 +750,8 @@ with tab2:
                                                         return f if f.lower() in protect else p_domain
                                                     body_text = re.sub(dom_reg, r_func, body_text)
 
-                                                # 2. [جديد] - حذف السطور الخاوية
+                                                # 2. حذف السطور الخاوية
                                                 if rm_empty:
-                                                    # تقسيم النص لسطور، تصفية السطور الخاوية، وجمعهم عاوتاني
-                                                    # كنستعملو splitlines() باش نتعاملو مع كاع أنواع الـ line endings
                                                     filtered_lines = [line for line in body_text.splitlines() if line.strip()]
                                                     body_text = sep_str.join(filtered_lines)
 
@@ -766,7 +764,10 @@ with tab2:
                                             if headers_only: body = b''
 
                                             final_head = sep_str.join(head_lines).encode('utf-8', 'replace')
-                                            fin = final_head + newline + newline + body
+                                            # التعديل المطلوب: حذف السطر الخالي الفاصل بين الـ Header والـ Body
+                                            # بدلاً من newline + newline ، غدي ندييرو غي سطر واحد باش يلصق البودي مباشرة
+                                            fin = final_head + newline + body
+                                            
                                             fn = f"{i+1}_{clean_filename(os_)}.txt" if name_by_subj else f"email_{i+1}.txt"
                                             zf.writestr(fn, fin)
                                             pbar.progress(0.4 + (i + 1) / len(fetched_emails) * 0.6)
