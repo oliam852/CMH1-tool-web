@@ -616,6 +616,11 @@ with tab2:
                             if rep_body_dom:
                                 p_domain = st.text_input("New Domain / Tag", value="[P_DOMAIN]", placeholder="e.g. mylink.com")
                                 st.caption("Detects all domains, even if split by '=' in Body")
+                            
+                            # [جديد] - خيار حذف السطور الخالية
+                            rm_empty = st.checkbox("Remove Empty Lines (Body)")
+                            if rm_empty:
+                                st.caption("Removes all purely whitespace/empty lines from email body")
 
                         custom_hdrs  = st.text_area("Custom Headers (Key:Value)")
                         st.markdown("---")
@@ -726,27 +731,31 @@ with tab2:
                                             if mod_content_type and custom_content_type:
                                                 head_lines = set_header_lines(head_lines, 'Content-Type', custom_content_type)
                                             
-                                            # [جديد] - تبديل الدومينات فـ الـ Body مع دعم Quoted-printable
-                                            if rep_body_dom and body:
+                                            # [تعديل] - معالجة الـ Body (التبديل + حذف السطور الفارغة)
+                                            if (rep_body_dom or rm_empty) and body:
                                                 is_qp = any('quoted-printable' in h.lower() for h in head_lines if 'content-transfer-encoding' in h.lower())
                                                 
-                                                # Decoding (بما فيها جمع الدومينات لي مقسومين بـ =)
+                                                # Decoding
                                                 if is_qp:
                                                     body_text = quopri.decodestring(body).decode('utf-8', 'ignore')
                                                 else:
                                                     body_text = body.decode('utf-8', 'ignore')
 
-                                                # Regex متطور للدومينات
-                                                dom_reg = r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}'
-                                                
-                                                # استثناء الكلمات التقنية لي ماخصناش نبدلوها
-                                                protect = ['utf-8', 'iso-8859', 'quoted-printable', 'text/html', 'text/plain']
-                                                
-                                                def r_func(m):
-                                                    f = m.group(0)
-                                                    return f if f.lower() in protect else p_domain
+                                                # 1. التبديل ديال الدومينات
+                                                if rep_body_dom:
+                                                    dom_reg = r'(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}'
+                                                    protect = ['utf-8', 'iso-8859', 'quoted-printable', 'text/html', 'text/plain']
+                                                    def r_func(m):
+                                                        f = m.group(0)
+                                                        return f if f.lower() in protect else p_domain
+                                                    body_text = re.sub(dom_reg, r_func, body_text)
 
-                                                body_text = re.sub(dom_reg, r_func, body_text)
+                                                # 2. [جديد] - حذف السطور الخاوية
+                                                if rm_empty:
+                                                    # تقسيم النص لسطور، تصفية السطور الخاوية، وجمعهم عاوتاني
+                                                    # كنستعملو splitlines() باش نتعاملو مع كاع أنواع الـ line endings
+                                                    filtered_lines = [line for line in body_text.splitlines() if line.strip()]
+                                                    body_text = sep_str.join(filtered_lines)
 
                                                 # Encoding back
                                                 if is_qp:
