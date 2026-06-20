@@ -363,7 +363,7 @@ if 'mail_connected' not in st.session_state:
 # ==========================================
 # TABS
 # ==========================================
-tab2, tab3 = st.tabs([, "📧 IMAP EMAIL TOOL", "⚡ CMH-1 PRO"])
+tab2, tab3 = st.tabs(["📧 IMAP EMAIL TOOL", "⚡ CMH-1 PRO"])
 
 with tab1:
     if os.path.exists("V6.html"):
