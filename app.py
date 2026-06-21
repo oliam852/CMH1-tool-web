@@ -94,7 +94,7 @@ def migrate_old_session():
 # PAGE CONFIG
 # ==========================================
 st.set_page_config(
-    page_title="CMH1 Fusion",
+    page_title="CMH Fusion",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -363,14 +363,7 @@ if 'mail_connected' not in st.session_state:
 # ==========================================
 # TABS
 # ==========================================
-tab1, tab2, tab3 = st.tabs(["💻 HTML FUSION EDITOR", "📧 IMAP EMAIL TOOL", "⚡ CMH-1 PRO"])
-
-with tab1:
-    if os.path.exists("V6.html"):
-        with open("V6.html", "r", encoding="utf-8") as f:
-            components.html(f.read(), height=920, scrolling=True)
-    else:
-        st.error("Fichier 'V6.html' ma kaynch!")
+tab2, tab3 = st.tabs(["📧 IMAP EMAIL TOOL", "⚡ CLEAN HEADERS"])
 
 # ==========================================
 # TAB 2 — IMAP
