@@ -481,6 +481,10 @@ with tab2:
                     color:#525966; margin-top:2px;">
             Download and process raw email headers
         </div>
+        <div style="font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+                    color:#525966; margin-top:2px;">
+            @ayoubrhattoy
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
