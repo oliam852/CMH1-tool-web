@@ -607,9 +607,6 @@ with tab2:
 
                 finally:
                     mail.logout()
-                    except Exception:
-                        pass
-
 # ==========================================
 # TAB 3 — CMH-1 PRO
 # ==========================================
