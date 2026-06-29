@@ -446,7 +446,11 @@ with tab2:
             unique.append(ed)
         return unique, dups
 
+    # ==========================================
+    # HEADER LINE HELPERS — preserve raw format
+    # ==========================================
     def remove_header_lines(lines, header_name):
+        """Remove all occurrences of a header (including folded continuation lines)."""
         result = []
         skip = False
         hn_lower = header_name.lower() + ':'
@@ -454,6 +458,7 @@ with tab2:
             if line.lower().startswith(hn_lower):
                 skip = True
                 continue
+            # Folded continuation line (starts with whitespace)
             if skip and line and line[0] in (' ', '\t'):
                 continue
             skip = False
@@ -461,16 +466,28 @@ with tab2:
         return result
 
     def set_header_lines(lines, header_name, value):
+        """Remove existing header then insert new one after the first line."""
         lines = remove_header_lines(lines, header_name)
         insert_pos = 1 if len(lines) > 1 else 0
         lines.insert(insert_pos, f"{header_name}: {value}")
         return lines
 
-    # --- UI START ---
+    # PAGE HEADER
     st.markdown("""
     <div style="border-bottom:1px solid rgba(255,255,255,0.07); padding-bottom:10px; margin-bottom:18px; margin-top:4px;">
-        <div style="font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#ffba00; background:rgba(255,186,0,0.12); border:1px solid rgba(255,186,0,0.2); padding:2px 8px; border-radius:2px; display:inline-block; margin-bottom:4px;">● IMAP Email Tool</div>
-        <div style="font-family:'Bebas Neue',sans-serif; font-size:2.6rem; line-height:1; color:#dde2ec; letter-spacing:0.04em;">GMAIL / IMAP RAW</div>
+        <div style="font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#ffba00;
+                    background:rgba(255,186,0,0.12); border:1px solid rgba(255,186,0,0.2);
+                    padding:2px 8px; border-radius:2px; display:inline-block; margin-bottom:4px;">
+            ● IMAP Email Tool
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif; font-size:2.6rem; line-height:1;
+                    color:#dde2ec; letter-spacing:0.04em;">
+            GMAIL / IMAP RAW
+        </div>
+        <div style="font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+                    color:#525966; margin-top:2px;">
+            Download and process raw email headers
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -480,14 +497,17 @@ with tab2:
         if st.session_state.get('mail_connected'):
             st.success(f"Connected: {st.session_state.get('saved_email', '')}")
             if st.button("Disconnect", type="secondary", use_container_width=True):
-                delete_token(st.session_state.get('current_token'))
+                token = st.session_state.get('current_token')
+                delete_token(token)
                 st.query_params.clear()
                 for k in list(st.session_state.keys()):
                     del st.session_state[k]
                 st.rerun()
         else:
+            st.info("Login Credentials")
             email_user = st.text_input("Email", placeholder="example@gmail.com")
             app_pass = st.text_input("App Password", type="password")
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Connect", type="primary", use_container_width=True):
                 if email_user and app_pass:
                     mc = connect_imap(email_user, app_pass)
@@ -498,155 +518,297 @@ with tab2:
                         st.session_state['saved_password'] = app_pass
                         st.session_state['current_token'] = token
                         st.query_params["t"] = token
+                        st.success("Connected!")
                         mc.logout()
                         st.rerun()
+                else:
+                    st.warning("Please enter credentials.")
 
     with col2:
         if st.session_state.get('mail_connected'):
-            mail = connect_imap(st.session_state.get('saved_email'), st.session_state.get('saved_password'))
+            email_user = st.session_state.get('saved_email')
+            app_pass   = st.session_state.get('saved_password')
+
+            mail = connect_imap(email_user, app_pass)
             if mail:
                 try:
-                    # Folder Fetching
-                    _, folders = mail.list()
-                    clean_folders = []
-                    for f in folders:
-                        m = re.search(r'"([^"]+)"$', f.decode()) or re.search(r' ([^ ]+)$', f.decode())
-                        clean_folders.append(m.group(1) if m else f.decode())
-                    
-                    sel_folder = st.selectbox("Select Folder", clean_folders, index=next((i for i, f in enumerate(clean_folders) if f == "INBOX"), 0))
+                    cache_key = f"folders_{email_user}"
+                    if cache_key not in st.session_state or st.session_state.get('refresh_folders'):
+                        _, folders = mail.list()
+                        clean_folders = []
+                        for folder in folders:
+                            fs = folder.decode()
+                            m = re.search(r'"([^"]+)"$', fs) or re.search(r' ([^ ]+)$', fs)
+                            clean_folders.append(m.group(1) if m else fs)
+                        st.session_state[cache_key] = clean_folders
+                        st.session_state['refresh_folders'] = False
+                    else:
+                        clean_folders = st.session_state[cache_key]
 
-                    # 🔍 FILTER SECTION
-                    st.markdown("#### 🔍 Filter Search")
-                    use_filter = st.checkbox("Enable Header Filter (e.g. In-Reply-To)")
-                    search_query = "ALL"
-                    if use_filter:
-                        f_c1, f_c2 = st.columns(2)
-                        with f_c1:
-                            h_name = st.text_input("Header Name", value="In-Reply-To")
-                        with f_c2:
-                            h_val = st.text_input("Header Value", value="")
-                        if h_name:
-                            search_query = f'(HEADER "{h_name}" "{h_val}")'
-                    
-                    if st.button("Check Matching Count"):
-                        mail.select(f'"{sel_folder}"', readonly=True)
-                        _, data = mail.search(None, search_query)
-                        st.info(f"Emails found with this filter: **{len(data[0].split())}**")
+                    if st.button("Refresh Folders", type="secondary"):
+                        st.session_state['refresh_folders'] = True
+                        st.session_state['refresh_counts'] = True
+                        st.rerun()
 
-                    # ⚙️ SETTINGS
-                    with st.expander("Settings — Processing", expanded=True):
+                    cnt_key = f"counts_{email_user}_all"
+                    if cnt_key not in st.session_state or st.session_state.get('refresh_counts'):
+                        fc = {}
+                        with st.spinner("Counting emails..."):
+                            for folder in clean_folders:
+                                try:
+                                    mail.select(f'"{folder}"', readonly=True)
+                                    typ, data = mail.search(None, 'ALL')
+                                    fc[folder] = len(data[0].split()) if typ == 'OK' and data[0] else 0
+                                except Exception:
+                                    fc[folder] = 0
+                        st.session_state[cnt_key] = fc
+                        st.session_state['refresh_counts'] = False
+                    else:
+                        fc = st.session_state[cnt_key]
+
+                    fopts = [f"{f} ({fc.get(f, 0)} emails)" for f in clean_folders]
+                    sel_disp = st.selectbox("Select Folder", fopts,
+                        index=next((i for i, f in enumerate(clean_folders) if f == "INBOX"), 0))
+                    sel_folder = clean_folders[fopts.index(sel_disp)]
+                    total_emails = fc.get(sel_folder, 0)
+
+                    with st.expander("Settings — RAW Body Preservation", expanded=True):
+                        st.info(f"Total emails in folder: **{total_emails}**")
                         cr1, cr2 = st.columns(2)
                         with cr1:
-                            start_from = st.number_input("Start from index #", min_value=1, value=1)
-                            dl_count = st.number_input("How many to download", min_value=1, value=10)
-                            st.markdown("---")
-                            rep_dom = st.checkbox("Change 'From' Domain")
-                            p_from = st.text_input("Tag [P_FROM]", "[P_FROM]") if rep_dom else "[P_FROM]"
-                            mod_subject = st.checkbox("Modify Subject")
-                            subj_new_val = st.text_input("New Subject Value") if mod_subject else ""
+                            start_from = st.number_input("Start from email #", min_value=1, max_value=max(1, total_emails), value=1)
                         with cr2:
-                            extract_plain = st.checkbox("Extract Body Only")
-                            exp_fmt = st.radio("Export Mode", ["Merged", "ZIP"]) if extract_plain else "ZIP"
-                            st.markdown("---")
-                            std_hdrs = st.checkbox("Set To=[*to], Date=[*date]")
-                            clean_auth = st.checkbox("Remove DKIM/SPF headers")
-                            headers_only = st.checkbox("Headers Only (No Body)")
-                            det_dupes = st.checkbox("Remove Duplicates")
-                        
-                        custom_hdrs = st.text_area("Custom Headers (Key:Value)")
-                        zip_filename = st.text_input("ZIP File Name", "emails_processed")
+                            dl_count = st.number_input("How many to download", min_value=1, max_value=max(1, total_emails), value=min(10, max(1, total_emails)))
+                        end_at = min(start_from + dl_count - 1, total_emails)
+                        st.caption(f"Will download: #{start_from} to #{end_at} ({end_at - start_from + 1} emails)" if total_emails > 0 else "No emails")
+                        st.markdown("---")
 
-                    # 🚀 EXECUTION
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            rep_dom = st.checkbox("Change 'From' Domain")
+                            p_from = st.text_input("Tag [P_FROM]", value="[P_FROM]") if rep_dom else "[P_FROM]"
+                            st.markdown("---")
+                            mod_subject = st.checkbox("Modify Subject")
+                            subj_new_value = ""
+                            if mod_subject:
+                                subj_new_value = st.text_input("New Subject", value="", placeholder="e.g. [S]")
+                                st.caption("Replaces the original subject entirely")
+                            st.markdown("---")
+                            mod_content_type = st.checkbox("Modify Content-Type")
+                            custom_content_type = ""
+                            if mod_content_type:
+                                custom_content_type = st.text_input("Content-Type", value="text/plain; charset=UTF-8")
+                            st.markdown("---")
+                            extract_plain = st.checkbox("Extract Body Only")
+                            exp_fmt = "Merged"
+                            if extract_plain:
+                                exp_fmt = st.radio("Export Format", ["Merged (1 file with __SEP__)", "Separate files (ZIP)"], horizontal=True)
+
+                        with c2:
+                            std_hdrs     = st.checkbox("Set To=[*to], Date=[*date]")
+                            mod_eid      = st.checkbox("Add [EID] to Message-ID")
+                            # FIX 1: 'Received' removed from list — only DKIM/SPF/ARC headers removed
+                            clean_auth   = st.checkbox("Remove DKIM/SPF headers")
+                            name_by_subj = st.checkbox("Name files by Subject")
+                            st.markdown("---")
+                            headers_only = st.checkbox("Headers Only (no Body)")
+                            if headers_only:
+                                st.caption("File will contain headers only.")
+                            st.markdown("---")
+                            det_dupes = st.checkbox("Remove Duplicates")
+
+                        custom_hdrs  = st.text_area("Custom Headers (Key:Value)")
+                        st.markdown("---")
+                        zip_filename = st.text_input("ZIP File Name", value="emails_raw_pack", placeholder="name without .zip")
+                        zip_filename = zip_filename.strip().replace(" ", "_") or "emails_raw_pack"
+
+                    st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("Start Download & Process", type="primary", use_container_width=True):
                         mail.select(f'"{sel_folder}"', readonly=True)
-                        _, data = mail.search(None, search_query)
+                        _, data = mail.search(None, 'ALL')
                         id_list = data[0].split()
                         id_list.reverse()
-                        id_list = id_list[start_from-1 : start_from-1 + dl_count]
+                        id_list = id_list[start_from - 1:start_from - 1 + dl_count]
 
                         if not id_list:
-                            st.error("No emails found for these criteria.")
+                            st.error("No emails found.")
                         else:
                             smsg = st.empty()
                             pbar = st.progress(0)
-                            
-                            smsg.info("Downloading raw emails...")
+
+                            smsg.info("Fetching emails...")
                             fetched_emails = []
                             for i, eid in enumerate(id_list):
                                 try:
                                     _, md = mail.fetch(eid, '(RFC822)')
-                                    raw_b = md[0][1]
-                                    em = email.message_from_bytes(raw_b)
-                                    fetched_emails.append({'msg': em, 'id': eid, 'raw': raw_b})
+                                    raw_bytes = md[0][1]
+                                    em = email.message_from_bytes(raw_bytes)
+                                    fetched_emails.append({'msg': em, 'id': eid, 'raw': raw_bytes})
                                     pbar.progress((i + 1) / len(id_list) * 0.4)
                                 except Exception:
                                     continue
 
                             if det_dupes:
-                                fetched_emails, _ = detect_duplicates(fetched_emails)
+                                smsg.info("Detecting duplicates...")
+                                unique, dups = detect_duplicates(fetched_emails)
+                                if dups:
+                                    smsg.warning(f"Found {len(dups)} duplicate(s). Processing {len(unique)} unique.")
+                                    with st.expander(f"{len(dups)} Duplicates found"):
+                                        for d in dups[:20]:
+                                            st.caption(f"#{d['index']}: {d['subject'][:50]} — {d['reason']}")
+                                        if len(dups) > 20:
+                                            st.caption(f"... and {len(dups) - 20} more")
+                                else:
+                                    smsg.success("No duplicates found!")
+                                fetched_emails = unique
 
-                            # Building Result
-                            zbuf = io.BytesIO()
-                            with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as zf:
-                                for i, ed in enumerate(fetched_emails):
-                                    try:
-                                        raw = ed['raw']
-                                        # Raw preservation logic
-                                        if b'\r\n\r\n' in raw:
-                                            raw_head, body = raw.split(b'\r\n\r\n', 1)
-                                            newline = b'\r\n'
-                                        elif b'\n\n' in raw:
-                                            raw_head, body = raw.split(b'\n\n', 1)
-                                            newline = b'\n'
-                                        else:
-                                            raw_head, body, newline = raw, b'', b'\r\n'
+                            if not fetched_emails:
+                                st.error("All duplicates — nothing to process!")
+                            elif extract_plain:
+                                if "Merged" in exp_fmt:
+                                    texts = []
+                                    for i, ed in enumerate(fetched_emails):
+                                        try:
+                                            b = get_email_body_text(ed['msg'])
+                                            if b:
+                                                texts.append(b)
+                                            pbar.progress(0.4 + (i + 1) / len(fetched_emails) * 0.6)
+                                        except Exception:
+                                            continue
+                                    pbar.empty()
+                                    smsg.success(f"Extracted {len(texts)} emails!")
+                                    st.download_button("Download Merged .txt", "\n__SEP__\n".join(texts), "emails_bodies_merged.txt", "text/plain")
+                                else:
+                                    zbuf = io.BytesIO()
+                                    with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as zf:
+                                        for i, ed in enumerate(fetched_emails):
+                                            try:
+                                                b = get_email_body_text(ed['msg'])
+                                                if b:
+                                                    fn = f"{i+1}_{clean_filename(ed['msg'].get('Subject',''))}.txt" if name_by_subj else f"email_{i+1}.txt"
+                                                    zf.writestr(fn, b.encode('utf-8'))
+                                                pbar.progress(0.4 + (i + 1) / len(fetched_emails) * 0.6)
+                                            except Exception:
+                                                continue
+                                    pbar.empty()
+                                    smsg.success("Done!")
+                                    st.download_button("Download ZIP", zbuf.getvalue(), f"{zip_filename}.zip", "application/zip", use_container_width=True)
+                            else:
+                                # ==========================================
+                                # FIX 2: Raw bytes preservation — Show Original format
+                                # Work directly on raw header lines instead of
+                                # re-encoding via email.message.as_bytes()
+                                # ==========================================
+                                zbuf = io.BytesIO()
+                                with zipfile.ZipFile(zbuf, "w", zipfile.ZIP_DEFLATED) as zf:
+                                    for i, ed in enumerate(fetched_emails):
+                                        try:
+                                            raw = ed['raw']
 
-                                        head_text = raw_head.decode('utf-8', 'replace')
-                                        sep_str = '\r\n' if newline == b'\r\n' else '\n'
-                                        head_lines = head_text.split(sep_str)
-                                        orig_s = ed['msg'].get('Subject', 'no_subject')
+                                            # Split header / body — preserve original line endings
+                                            if b'\r\n\r\n' in raw:
+                                                raw_head, body = raw.split(b'\r\n\r\n', 1)
+                                                newline = b'\r\n'
+                                            elif b'\n\n' in raw:
+                                                raw_head, body = raw.split(b'\n\n', 1)
+                                                newline = b'\n'
+                                            else:
+                                                raw_head = raw
+                                                body = b''
+                                                newline = b'\r\n'
 
-                                        # Apply Modifications
-                                        if rep_dom:
-                                            for j, line in enumerate(head_lines):
-                                                if line.lower().startswith('from:'):
-                                                    head_lines[j] = re.sub(r'@[a-zA-Z0-9.\-]+', f'@{p_from}', line)
-                                                    break
-                                        if std_hdrs:
-                                            head_lines = set_header_lines(head_lines, 'To', '[*to]')
-                                            head_lines = set_header_lines(head_lines, 'Date', '[*date]')
-                                        if custom_hdrs:
-                                            for cl in custom_hdrs.split('\n'):
-                                                if ':' in cl:
-                                                    k, v = cl.split(':', 1)
-                                                    head_lines = set_header_lines(head_lines, k.strip(), v.strip())
-                                        if clean_auth:
-                                            for h in ['DKIM-Signature','Authentication-Results','Received-SPF','ARC-Authentication-Results','ARC-Message-Signature','ARC-Seal']:
-                                                head_lines = remove_header_lines(head_lines, h)
-                                        if mod_subject:
-                                            head_lines = set_header_lines(head_lines, 'Subject', subj_new_val)
-                                        
-                                        if headers_only:
-                                            body = b''
+                                            # Decode header block as text (for line manipulation)
+                                            try:
+                                                head_text = raw_head.decode('utf-8', 'replace')
+                                            except Exception:
+                                                head_text = raw_head.decode('latin-1', 'replace')
 
-                                        final_head = sep_str.join(head_lines).encode('utf-8', 'replace')
-                                        final_data = final_head + newline + newline + body
-                                        
-                                        fn = f"{i+1}_{clean_filename(orig_s)}.txt"
-                                        zf.writestr(fn, final_data)
-                                        pbar.progress(0.4 + (i + 1) / len(fetched_emails) * 0.6)
-                                    except Exception:
-                                        continue
+                                            sep_str = '\r\n' if newline == b'\r\n' else '\n'
+                                            head_lines = head_text.split(sep_str)
 
-                            pbar.empty()
-                            smsg.success("Processing Complete!")
-                            st.download_button("Download ZIP File", zbuf.getvalue(), f"{zip_filename}.zip", "application/zip", use_container_width=True)
+                                            # Read original subject for filename (before any modification)
+                                            mm_read = email.message_from_bytes(raw_head)
+                                            os_ = mm_read.get('Subject', 'no_subject')
+
+                                            # --- Apply modifications directly on lines ---
+
+                                            # Change 'From' domain
+                                            if rep_dom:
+                                                for j, line in enumerate(head_lines):
+                                                    if line.lower().startswith('from:'):
+                                                        head_lines[j] = re.sub(
+                                                            r'@[a-zA-Z0-9.\-]+',
+                                                            f'@{p_from}',
+                                                            line
+                                                        )
+                                                        break
+
+                                            # Set To / Date
+                                            if std_hdrs:
+                                                head_lines = set_header_lines(head_lines, 'To', '[*to]')
+                                                head_lines = set_header_lines(head_lines, 'Date', '[*date]')
+
+                                            # Custom headers
+                                            if custom_hdrs:
+                                                for cl in custom_hdrs.split('\n'):
+                                                    if ':' in cl:
+                                                        k, v = cl.split(':', 1)
+                                                        head_lines = set_header_lines(head_lines, k.strip(), v.strip())
+
+                                            # Add [EID] to Message-ID
+                                            if mod_eid:
+                                                for j, line in enumerate(head_lines):
+                                                    if line.lower().startswith('message-id:') and '@' in line:
+                                                        head_lines[j] = line.replace('@', '[EID]@', 1)
+                                                        break
+
+                                            # FIX 1: Remove DKIM/SPF/ARC — NOT Received
+                                            if clean_auth:
+                                                for h in [
+                                                    'DKIM-Signature',
+                                                    'Authentication-Results',
+                                                    'Received-SPF',
+                                                    'ARC-Authentication-Results',
+                                                    'ARC-Message-Signature',
+                                                    'ARC-Seal'
+                                                ]:
+                                                    head_lines = remove_header_lines(head_lines, h)
+
+                                            # Modify Subject
+                                            if mod_subject:
+                                                head_lines = set_header_lines(head_lines, 'Subject', subj_new_value)
+
+                                            # Modify Content-Type
+                                            if mod_content_type and custom_content_type:
+                                                head_lines = set_header_lines(head_lines, 'Content-Type', custom_content_type)
+
+                                            # Headers only — strip body
+                                            if headers_only:
+                                                body = b''
+
+                                            # Reconstruct — keep original line endings throughout
+                                            final_head = sep_str.join(head_lines).encode('utf-8', 'replace')
+                                            fin = final_head + newline + newline + body
+
+                                            fn = f"{i+1}_{clean_filename(os_)}.txt" if name_by_subj else f"email_{i+1}.txt"
+                                            zf.writestr(fn, fin)
+                                            pbar.progress(0.4 + (i + 1) / len(fetched_emails) * 0.6)
+
+                                        except Exception:
+                                            continue
+
+                                pbar.empty()
+                                smsg.success("Download Complete!")
+                                st.download_button("Download ZIP File", zbuf.getvalue(), f"{zip_filename}.zip", "application/zip", use_container_width=True)
+
+                            st.session_state['refresh_counts'] = True
 
                 finally:
                     try:
                         mail.logout()
                     except Exception:
                         pass
+
 # ==========================================
 # TAB 3 — CMH-1 PRO
 # ==========================================
